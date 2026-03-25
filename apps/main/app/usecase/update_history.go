@@ -2,21 +2,13 @@ package usecase
 
 import (
 	"context"
-	"time"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
-type UpdateHistoryRequest struct {
-	Date        *time.Time
-	Services    *[]domain.ServiceType
-	SalonName   *string
-	StylistName *string
-	Memo        *string
-}
-
 type UpdateHistoryResponse struct {
-	History domain.HairHistory
+	History domain.HairHistory `json:"history"`
 }
 
 type UpdateHistoryUsecase struct {
@@ -27,7 +19,7 @@ func NewUpdateHistoryUsecase(hairHistoryRepo domain.HairHistoryRepository) *Upda
 	return &UpdateHistoryUsecase{hairHistoryRepo: hairHistoryRepo}
 }
 
-func (u *UpdateHistoryUsecase) Execute(ctx context.Context, historyID string, req UpdateHistoryRequest) (UpdateHistoryResponse, error) {
+func (u *UpdateHistoryUsecase) Execute(ctx context.Context, req *request.UpdateHistory) (UpdateHistoryResponse, error) {
 	params := domain.UpdateHairHistoryParams{
 		Date:        req.Date,
 		Services:    req.Services,
@@ -36,7 +28,7 @@ func (u *UpdateHistoryUsecase) Execute(ctx context.Context, historyID string, re
 		Memo:        req.Memo,
 	}
 
-	h, err := u.hairHistoryRepo.Update(ctx, historyID, params)
+	h, err := u.hairHistoryRepo.Update(ctx, req.HistoryID, params)
 	if err != nil {
 		return UpdateHistoryResponse{}, err
 	}

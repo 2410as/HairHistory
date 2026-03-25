@@ -4,12 +4,11 @@ import (
 	"context"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
-type CreateUserRequest struct{}
-
 type CreateUserResponse struct {
-	UserID string
+	UserID string `json:"userId"`
 }
 
 type CreateUserUsecase struct {
@@ -20,7 +19,7 @@ func NewCreateUserUsecase(userRepo domain.UserRepository) *CreateUserUsecase {
 	return &CreateUserUsecase{userRepo: userRepo}
 }
 
-func (u *CreateUserUsecase) Execute(ctx context.Context, req CreateUserRequest) (CreateUserResponse, error) {
+func (u *CreateUserUsecase) Execute(ctx context.Context, _ *request.CreateUser) (CreateUserResponse, error) {
 	user, err := u.userRepo.Create(ctx)
 	if err != nil {
 		return CreateUserResponse{}, err

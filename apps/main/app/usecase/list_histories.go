@@ -4,14 +4,11 @@ import (
 	"context"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
-type ListHistoriesRequest struct {
-	UserID string
-}
-
 type ListHistoriesResponse struct {
-	Histories []domain.HairHistory
+	Histories []domain.HairHistory `json:"histories"`
 }
 
 type ListHistoriesUsecase struct {
@@ -22,7 +19,7 @@ func NewListHistoriesUsecase(hairHistoryRepo domain.HairHistoryRepository) *List
 	return &ListHistoriesUsecase{hairHistoryRepo: hairHistoryRepo}
 }
 
-func (u *ListHistoriesUsecase) Execute(ctx context.Context, req ListHistoriesRequest) (ListHistoriesResponse, error) {
+func (u *ListHistoriesUsecase) Execute(ctx context.Context, req *request.ListHistories) (ListHistoriesResponse, error) {
 	list, err := u.hairHistoryRepo.ListByUserID(ctx, req.UserID)
 	if err != nil {
 		return ListHistoriesResponse{}, err

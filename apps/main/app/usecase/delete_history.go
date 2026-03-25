@@ -4,12 +4,11 @@ import (
 	"context"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
-type DeleteHistoryRequest struct{}
-
 type DeleteHistoryResponse struct {
-	OK bool
+	OK bool `json:"ok"`
 }
 
 type DeleteHistoryUsecase struct {
@@ -20,8 +19,8 @@ func NewDeleteHistoryUsecase(hairHistoryRepo domain.HairHistoryRepository) *Dele
 	return &DeleteHistoryUsecase{hairHistoryRepo: hairHistoryRepo}
 }
 
-func (u *DeleteHistoryUsecase) Execute(ctx context.Context, historyID string, req DeleteHistoryRequest) (DeleteHistoryResponse, error) {
-	if err := u.hairHistoryRepo.Delete(ctx, historyID); err != nil {
+func (u *DeleteHistoryUsecase) Execute(ctx context.Context, req *request.DeleteHistory) (DeleteHistoryResponse, error) {
+	if err := u.hairHistoryRepo.Delete(ctx, req.HistoryID); err != nil {
 		return DeleteHistoryResponse{}, err
 	}
 	return DeleteHistoryResponse{OK: true}, nil

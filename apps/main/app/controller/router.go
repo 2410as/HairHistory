@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
 type Handler struct {
@@ -61,7 +61,13 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.deps.CreateUser.Execute(r.Context(), usecase.CreateUserRequest{})
+	req, err := request.NewCreateUser(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	resp, err := h.deps.CreateUser.Execute(r.Context(), req)
 	if err != nil {
 		writeError(w, http.StatusNotImplemented, err)
 		return
@@ -88,7 +94,14 @@ func (h *Handler) UsersHistories(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		resp, err := h.deps.ListHistories.Execute(r.Context(), usecase.ListHistoriesRequest{UserID: userID})
+		req, err := request.NewListHistories(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		_ = userID // route validation only
+		resp, err := h.deps.ListHistories.Execute(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
@@ -97,12 +110,14 @@ func (h *Handler) UsersHistories(w http.ResponseWriter, r *http.Request) {
 			"histories": resp.Histories,
 		})
 	case http.MethodPost:
-		var req usecase.CreateHistoryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req, err := request.NewCreateHistory(r)
+		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		resp, err := h.deps.CreateHistory.Execute(r.Context(), userID, req)
+
+		_ = userID // route validation only
+		resp, err := h.deps.CreateHistory.Execute(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
@@ -129,12 +144,14 @@ func (h *Handler) HistoriesByID(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPut:
-		var req usecase.UpdateHistoryRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		req, err := request.NewUpdateHistory(r)
+		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		resp, err := h.deps.UpdateHistory.Execute(r.Context(), historyID, req)
+
+		_ = historyID // route validation only
+		resp, err := h.deps.UpdateHistory.Execute(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
@@ -143,7 +160,14 @@ func (h *Handler) HistoriesByID(w http.ResponseWriter, r *http.Request) {
 			"history": resp.History,
 		})
 	case http.MethodDelete:
-		resp, err := h.deps.DeleteHistory.Execute(r.Context(), historyID, usecase.DeleteHistoryRequest{})
+		req, err := request.NewDeleteHistory(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		_ = historyID // route validation only
+		resp, err := h.deps.DeleteHistory.Execute(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
