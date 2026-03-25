@@ -67,15 +67,13 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.deps.CreateUser.Execute(r.Context(), req)
+	resp, err := h.deps.User.Create(r.Context(), req)
 	if err != nil {
 		writeError(w, http.StatusNotImplemented, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"userId": resp.UserID,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // UsersHistories handles:
@@ -101,14 +99,12 @@ func (h *Handler) UsersHistories(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = userID // route validation only
-		resp, err := h.deps.ListHistories.Execute(r.Context(), req)
+		resp, err := h.deps.HairHistory.List(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"histories": resp.Histories,
-		})
+		writeJSON(w, http.StatusOK, resp)
 	case http.MethodPost:
 		req, err := request.NewCreateHistory(r)
 		if err != nil {
@@ -117,14 +113,12 @@ func (h *Handler) UsersHistories(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = userID // route validation only
-		resp, err := h.deps.CreateHistory.Execute(r.Context(), req)
+		resp, err := h.deps.HairHistory.Create(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"history": resp.History,
-		})
+		writeJSON(w, http.StatusOK, resp)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -151,14 +145,12 @@ func (h *Handler) HistoriesByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = historyID // route validation only
-		resp, err := h.deps.UpdateHistory.Execute(r.Context(), req)
+		resp, err := h.deps.HairHistory.Update(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"history": resp.History,
-		})
+		writeJSON(w, http.StatusOK, resp)
 	case http.MethodDelete:
 		req, err := request.NewDeleteHistory(r)
 		if err != nil {
@@ -167,12 +159,12 @@ func (h *Handler) HistoriesByID(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_ = historyID // route validation only
-		resp, err := h.deps.DeleteHistory.Execute(r.Context(), req)
+		resp, err := h.deps.HairHistory.Delete(r.Context(), req)
 		if err != nil {
 			writeError(w, http.StatusNotImplemented, err)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"ok": resp.OK})
+		writeJSON(w, http.StatusOK, resp)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
