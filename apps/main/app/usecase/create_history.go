@@ -8,15 +8,15 @@ import (
 )
 
 type CreateHistoryRequest struct {
-	Date        time.Time
-	Services    []domain.ServiceType
-	SalonName   string
-	StylistName string
-	Memo        string
+	Date        time.Time           `json:"date"`
+	Services    []domain.ServiceType `json:"services"`
+	SalonName   string              `json:"salonName"`
+	StylistName string              `json:"stylistName"`
+	Memo        string              `json:"memo"`
 }
 
 type CreateHistoryResponse struct {
-	History domain.HairHistory
+	History domain.HairHistory `json:"history"`
 }
 
 type CreateHistoryUsecase struct {
