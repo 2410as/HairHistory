@@ -11,7 +11,7 @@ type ListHistoriesRequest struct {
 }
 
 type ListHistoriesResponse struct {
-	Histories []domain.HairHistory
+	Histories []domain.HairHistory `json:"histories"`
 }
 
 type ListHistoriesUsecase struct {

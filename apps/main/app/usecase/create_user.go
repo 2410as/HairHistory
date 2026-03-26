@@ -9,7 +9,7 @@ import (
 type CreateUserRequest struct{}
 
 type CreateUserResponse struct {
-	UserID string
+	UserID string `json:"userId"`
 }
 
 type CreateUserUsecase struct {

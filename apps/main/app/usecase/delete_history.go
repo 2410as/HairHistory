@@ -9,7 +9,7 @@ import (
 type DeleteHistoryRequest struct{}
 
 type DeleteHistoryResponse struct {
-	OK bool
+	OK bool `json:"ok"`
 }
 
 type DeleteHistoryUsecase struct {
