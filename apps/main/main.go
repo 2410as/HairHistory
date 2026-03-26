@@ -15,11 +15,8 @@ func main() {
 	hairHistoryRepo := &infra.HairHistoryRepositoryPG{}
 
 	deps := controller.Deps{
-		CreateUser:      usecase.NewCreateUserUsecase(userRepo),
-		ListHistories:   usecase.NewListHistoriesUsecase(hairHistoryRepo),
-		CreateHistory:   usecase.NewCreateHistoryUsecase(hairHistoryRepo),
-		UpdateHistory:   usecase.NewUpdateHistoryUsecase(hairHistoryRepo),
-		DeleteHistory:   usecase.NewDeleteHistoryUsecase(hairHistoryRepo),
+		User:        usecase.NewUser(userRepo),
+		HairHistory: usecase.NewHairHistory(hairHistoryRepo),
 	}
 
 	handler := controller.NewRouter(deps)
