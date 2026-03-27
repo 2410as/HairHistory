@@ -17,24 +17,24 @@ const (
 )
 
 type User struct {
-	ID             string     `json:"id"`
-	Name           *string    `json:"name,omitempty"`
-	Email          *string    `json:"email,omitempty"`
-	LastLoginAt   *time.Time `json:"lastLoginAt,omitempty"`
-	IsDeactivated  bool       `json:"isDeactivated"`
-	CreatedAt     time.Time  `json:"createdAt"`
+	ID            string
+	Name          *string
+	Email         *string
+	LastLoginAt  *time.Time
+	IsDeactivated bool
+	CreatedAt     time.Time
 }
 
 type HairHistory struct {
-	ID           string        `json:"id"`
-	UserID       string        `json:"userId"`
-	Date         time.Time     `json:"date"`
-	Services     []ServiceType `json:"services"`
-	SalonName    string        `json:"salonName"`
-	StylistName  string        `json:"stylistName"`
-	Memo         string        `json:"memo"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
+	ID          string
+	UserID      string
+	Date        time.Time
+	Services    []ServiceType
+	SalonName   string
+	StylistName string
+	Memo        string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // UserRepository defines the persistence contract for User.

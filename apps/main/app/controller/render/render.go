@@ -1,7 +1,6 @@
 package render
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 )
@@ -18,21 +17,5 @@ func ErrorJSON(w http.ResponseWriter, message string, status int) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"error": message,
 	})
-}
-
-func ErrorBadRequest(_ context.Context, w http.ResponseWriter, err error) {
-	if err == nil {
-		ErrorJSON(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	ErrorJSON(w, err.Error(), http.StatusBadRequest)
-}
-
-func ErrorInternalServer(_ context.Context, w http.ResponseWriter, err error) {
-	if err == nil {
-		ErrorJSON(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	ErrorJSON(w, err.Error(), http.StatusInternalServerError)
 }
 
