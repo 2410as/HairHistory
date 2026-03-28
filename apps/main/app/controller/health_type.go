@@ -1,7 +1,9 @@
 package controller
 
-type Health struct{}
+type Health struct {
+	db DBPing
+}
 
-func NewHealth() *Health {
-	return &Health{}
+func NewHealth(db DBPing) *Health {
+	return &Health{db: db}
 }

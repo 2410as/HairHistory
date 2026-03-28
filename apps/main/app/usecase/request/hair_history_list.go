@@ -3,7 +3,8 @@ package request
 import (
 	"errors"
 	"net/http"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type ListHistories struct {
@@ -11,12 +12,9 @@ type ListHistories struct {
 }
 
 func NewListHistories(httpReq *http.Request) (*ListHistories, error) {
-	// Expected path: /api/users/{userId}/histories
-	p := strings.TrimPrefix(httpReq.URL.Path, "/api/users/")
-	p = strings.Trim(p, "/")
-	parts := strings.Split(p, "/")
-	if len(parts) != 2 || parts[1] != "histories" || parts[0] == "" {
-		return nil, errors.New("invalid userId path")
+	userID := chi.URLParam(httpReq, "userId")
+	if userID == "" {
+		return nil, errors.New("invalid userId")
 	}
-	return &ListHistories{UserID: parts[0]}, nil
+	return &ListHistories{UserID: userID}, nil
 }

@@ -21,8 +21,5 @@ func (u HairHistory) Update(ctx context.Context, r *request.UpdateHistory) (*res
 	if err != nil {
 		return nil, err
 	}
-	if h == nil {
-		return response.NewUpdateHistory(entity.HairHistory{}), nil
-	}
 	return response.NewUpdateHistory(*h), nil
 }

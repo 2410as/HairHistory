@@ -1,15 +1,8 @@
 package controller
 
-import "net/http"
+import "github.com/go-chi/chi/v5"
 
-func registerUserRoutes(mux *http.ServeMux, deps Deps) {
+func registerUserRoutes(r chi.Router, deps Deps) {
 	usersController := NewUsers(deps.User)
-
-	mux.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		usersController.Create(w, r)
-	})
+	r.Post("/users", usersController.Create)
 }

@@ -1,31 +1,11 @@
 package controller
 
-import "net/http"
+import "github.com/go-chi/chi/v5"
 
-func registerHairHistoryRoutes(mux *http.ServeMux, deps Deps) {
-	hairHistoryController := NewHairHistory(deps.HairHistory)
-
-	// /api/users/{userId}/histories
-	mux.HandleFunc("/api/users/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			hairHistoryController.List(w, r)
-		case http.MethodPost:
-			hairHistoryController.Create(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
-
-	// /api/histories/{historyId}
-	mux.HandleFunc("/api/histories/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPut:
-			hairHistoryController.Update(w, r)
-		case http.MethodDelete:
-			hairHistoryController.Delete(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
+func registerHairHistoryRoutes(r chi.Router, deps Deps) {
+	h := NewHairHistory(deps.HairHistory)
+	r.Get("/users/{userId}/histories", h.List)
+	r.Post("/users/{userId}/histories", h.Create)
+	r.Put("/histories/{historyId}", h.Update)
+	r.Delete("/histories/{historyId}", h.Delete)
 }

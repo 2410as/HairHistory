@@ -21,8 +21,5 @@ func (u HairHistory) Create(ctx context.Context, r *request.CreateHistory) (*res
 	if err != nil {
 		return nil, err
 	}
-	if h == nil {
-		return response.NewCreateHistory(entity.HairHistory{}), nil
-	}
 	return response.NewCreateHistory(*h), nil
 }

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/entity"
 )
@@ -20,28 +21,19 @@ type CreateHistory struct {
 }
 
 func (r *CreateHistory) Validate() error {
-	// Minimal validation for now.
-	if r.SalonName == "" {
-		return errors.New("salonName is required")
-	}
-	if r.StylistName == "" {
-		return errors.New("stylistName is required")
-	}
 	if r.Date.IsZero() {
 		return errors.New("date is required")
 	}
-	return nil
+	return entity.ValidateServices(r.Services)
 }
 
 func NewCreateHistory(httpReq *http.Request) (*CreateHistory, error) {
 	req := &CreateHistory{}
-	p := strings.TrimPrefix(httpReq.URL.Path, "/api/users/")
-	p = strings.Trim(p, "/")
-	parts := strings.Split(p, "/")
-	if len(parts) != 2 || parts[1] != "histories" || parts[0] == "" {
-		return nil, errors.New("invalid userId path")
+	userID := chi.URLParam(httpReq, "userId")
+	if userID == "" {
+		return nil, errors.New("invalid userId")
 	}
-	req.UserID = parts[0]
+	req.UserID = userID
 
 	if err := json.NewDecoder(httpReq.Body).Decode(req); err != nil {
 		return nil, err

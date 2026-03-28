@@ -17,7 +17,7 @@ func (a HairHistory) Update(w http.ResponseWriter, r *http.Request) {
 
 	res, err := a.hairHistoryUsecase.Update(r.Context(), req)
 	if err != nil {
-		render.ErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		render.ErrorFromUsecase(w, err)
 		return
 	}
 	render.JSON(w, res)

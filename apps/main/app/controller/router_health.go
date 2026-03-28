@@ -1,15 +1,8 @@
 package controller
 
-import "net/http"
+import "github.com/go-chi/chi/v5"
 
-func registerHealthRoutes(mux *http.ServeMux) {
-	healthController := NewHealth()
-
-	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		healthController.Get(w, r)
-	})
+func registerHealthRoutes(r chi.Router, deps Deps) {
+	healthController := NewHealth(deps.DB)
+	r.Get("/health", healthController.Get)
 }
