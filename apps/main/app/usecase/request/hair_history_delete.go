@@ -3,7 +3,8 @@ package request
 import (
 	"errors"
 	"net/http"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type DeleteHistory struct {
@@ -11,10 +12,9 @@ type DeleteHistory struct {
 }
 
 func NewDeleteHistory(httpReq *http.Request) (*DeleteHistory, error) {
-	p := strings.TrimPrefix(httpReq.URL.Path, "/api/histories/")
-	p = strings.Trim(p, "/")
-	if p == "" {
-		return nil, errors.New("invalid historyId path")
+	id := chi.URLParam(httpReq, "historyId")
+	if id == "" {
+		return nil, errors.New("invalid historyId")
 	}
-	return &DeleteHistory{HistoryID: p}, nil
+	return &DeleteHistory{HistoryID: id}, nil
 }

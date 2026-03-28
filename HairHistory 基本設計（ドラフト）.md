@@ -344,10 +344,12 @@ HTTP リクエスト
 - **usecase/response** … JSON 用 DTO と `New…` コンストラクタ（例: `list` / `ent`）
 - **controller/render** … JSON 書き出し・エラー応答
 
-### 5.2 ルーティング（標準 `net/http` + `ServeMux`）
+### 5.2 ルーティング（[chi](https://github.com/go-chi/chi) v5）
 
-| メソッド | パス | 処理 |
-|---------|------|------|
+`controller` で `chi.NewRouter()` を組み立て、`/api` 配下にルートを登録する。
+
+| メソッド | パス（`chi` パターン） | 処理 |
+|---------|------------------------|------|
 | GET | `/api/health` | ヘルスチェック |
 | POST | `/api/users` | ユーザー作成 |
 | GET | `/api/users/{userId}/histories` | 履歴一覧 |
@@ -355,7 +357,7 @@ HTTP リクエスト
 | PUT | `/api/histories/{historyId}` | 履歴更新 |
 | DELETE | `/api/histories/{historyId}` | 履歴削除 |
 
-パスパラメータは **サードパーティのルータに依存せず**、`usecase/request` 側で `URL.Path` を `strings` により分解して取得する。
+`{userId}` / `{historyId}` は `usecase/request` で `chi.URLParam` により取得する。
 
 ### 5.3 ファイル分割の方針
 
@@ -387,7 +389,7 @@ HTTP リクエスト
 
 | 種別 | 例 |
 |------|-----|
-| ルーティング | `router.go`（組み立て）、`router_health.go`、`router_users.go`、`router_hair_history.go` |
+| ルーティング | `router.go`（chi 組み立て・`/api`）、`router_health.go`、`router_users.go`、`router_hair_history.go` |
 | 依存の型 | `deps_types.go`（`Deps`） |
 | ハンドラ | `health_type.go` + `health_get.go`、`users_type.go` + `users_create.go`、`hair_history_type.go` + `hair_history_list.go` など**操作ごと** |
 | JSON | `render/json.go`, `render/error.go` |
@@ -416,8 +418,7 @@ HTTP リクエスト
 
 | ファイル | 内容 |
 |---------|------|
-| `main.go` | `ListenAndServe` のみ |
-| `wire.go` | `wireDeps()` … repo → domain service → usecase の配線 |
+| `main.go` | DB 接続 → repository → domain service → usecase → `controller.NewRouter` → `ListenAndServe`（グレースフル shutdown） |
 
 ### 5.4 新機能を足すとき（例: 別リソース）
 
@@ -427,7 +428,7 @@ HTTP リクエスト
 4. `infra/*_repository_pg.go`  
 5. `usecase/*` / `request` / `response`  
 6. `controller/*` と `router_*` にルート登録  
-7. `wire.go` に配線追加  
+7. `main.go` に repository / service / usecase の配線を追加  
 
 フロント（例: Next.js）からは `/api/*` をこの Go API に向けて呼び出す想定。
 
