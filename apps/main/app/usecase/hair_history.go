@@ -4,20 +4,21 @@ import (
 	"context"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	hairhistorysvc "github.com/annasakai/hairhistorymemo/apps/main/app/domain/service/hairhistory"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/response"
 )
 
 type HairHistory struct {
-	hairHistoryRepo domain.HairHistoryRepository
+	hairHistorySvc hairhistorysvc.Service
 }
 
-func NewHairHistory(hairHistoryRepo domain.HairHistoryRepository) *HairHistory {
-	return &HairHistory{hairHistoryRepo: hairHistoryRepo}
+func NewHairHistory(hairHistorySvc hairhistorysvc.Service) *HairHistory {
+	return &HairHistory{hairHistorySvc: hairHistorySvc}
 }
 
 func (u HairHistory) List(ctx context.Context, r *request.ListHistories) (*response.ListHistories, error) {
-	list, err := u.hairHistoryRepo.ListByUserID(ctx, r.UserID)
+	list, err := u.hairHistorySvc.ListByUserID(ctx, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func (u HairHistory) Create(ctx context.Context, r *request.CreateHistory) (*res
 		Memo:        r.Memo,
 	}
 
-	h, err := u.hairHistoryRepo.Create(ctx, r.UserID, params)
+	h, err := u.hairHistorySvc.Create(ctx, r.UserID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func (u HairHistory) Update(ctx context.Context, r *request.UpdateHistory) (*res
 		Memo:        r.Memo,
 	}
 
-	h, err := u.hairHistoryRepo.Update(ctx, r.HistoryID, params)
+	h, err := u.hairHistorySvc.Update(ctx, r.HistoryID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +72,8 @@ func (u HairHistory) Update(ctx context.Context, r *request.UpdateHistory) (*res
 }
 
 func (u HairHistory) Delete(ctx context.Context, r *request.DeleteHistory) (*response.DeleteHistory, error) {
-	if err := u.hairHistoryRepo.Delete(ctx, r.HistoryID); err != nil {
+	if err := u.hairHistorySvc.Delete(ctx, r.HistoryID); err != nil {
 		return nil, err
 	}
 	return response.NewDeleteHistory(true), nil
 }
-

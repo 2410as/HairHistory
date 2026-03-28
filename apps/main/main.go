@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/controller"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/service/hairhistory"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/service/user"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/infra"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase"
 )
@@ -14,9 +16,12 @@ func main() {
 	userRepo := &infra.UserRepositoryPG{}
 	hairHistoryRepo := &infra.HairHistoryRepositoryPG{}
 
+	userSvc := user.NewService(userRepo)
+	hairHistorySvc := hairhistory.NewService(hairHistoryRepo)
+
 	deps := controller.Deps{
-		User:        usecase.NewUser(userRepo),
-		HairHistory: usecase.NewHairHistory(hairHistoryRepo),
+		User:        usecase.NewUser(userSvc),
+		HairHistory: usecase.NewHairHistory(hairHistorySvc),
 	}
 
 	handler := controller.NewRouter(deps)
@@ -27,4 +32,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
