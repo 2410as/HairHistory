@@ -5,21 +5,10 @@ import (
 	"net/http"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/controller"
-	"github.com/annasakai/hairhistorymemo/apps/main/app/infra"
-	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase"
 )
 
 func main() {
-	// TODO: PostgreSQL接続・初期化をここに入れる
-	userRepo := &infra.UserRepositoryPG{}
-	hairHistoryRepo := &infra.HairHistoryRepositoryPG{}
-
-	deps := controller.Deps{
-		User:        usecase.NewUser(userRepo),
-		HairHistory: usecase.NewHairHistory(hairHistoryRepo),
-	}
-
-	handler := controller.NewRouter(deps)
+	handler := controller.NewRouter(wireDeps())
 
 	addr := ":8080"
 	log.Printf("api listening on %s", addr)
@@ -27,4 +16,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-

@@ -1,8 +1,6 @@
 # HairHistoryMemo
 
-モノレポ構成で `web`（Next.js）と `main`（Go API）を分けて開発します。
+## ドキュメント
 
-- `apps/web/`: フロント（Next.js / App Router）
-- `apps/main/`: バックエンド（Go / Clean-ish architecture: Controller / Usecase / Domain / Infra）
-
-まずはバックエンドの雛形（層・インタフェース・usecase）を作って、API を通してフロントと繋げていきます。
+- [HairHistory 要件定義.md](HairHistory%20要件定義.md)
+- [HairHistory 基本設計（ドラフト）.md](HairHistory%20基本設計（ドラフト）.md) … 画面・データ・API、および **`apps/main` のバックエンド構成（§5）**
