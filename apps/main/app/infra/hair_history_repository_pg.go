@@ -22,6 +22,14 @@ type HairHistoryRepositoryPG struct {
 
 var _ domain.HairHistoryRepository = (*HairHistoryRepositoryPG)(nil)
 
+// NewHairHistoryRepositoryPG returns a repository backed by pool. pool must be non-nil.
+func NewHairHistoryRepositoryPG(pool *pgxpool.Pool) (*HairHistoryRepositoryPG, error) {
+	if pool == nil {
+		return nil, errors.New("infra: nil pool")
+	}
+	return &HairHistoryRepositoryPG{Pool: pool}, nil
+}
+
 func servicesToJSON(s []entity.ServiceType) ([]byte, error) {
 	strs := make([]string, len(s))
 	for i, v := range s {
@@ -43,9 +51,6 @@ func servicesFromJSON(b []byte) ([]entity.ServiceType, error) {
 }
 
 func (r *HairHistoryRepositoryPG) ListByUserID(ctx context.Context, userID string) ([]*entity.HairHistory, error) {
-	if r.Pool == nil {
-		return nil, errors.New("infra: nil pool")
-	}
 	rows, err := r.Pool.Query(ctx, `
 SELECT id, user_id, date, services, salon_name, stylist_name, memo, created_at, updated_at
 FROM hair_histories
@@ -72,9 +77,6 @@ ORDER BY date DESC, created_at DESC
 }
 
 func (r *HairHistoryRepositoryPG) Create(ctx context.Context, userID string, req entity.CreateHairHistoryParams) (*entity.HairHistory, error) {
-	if r.Pool == nil {
-		return nil, errors.New("infra: nil pool")
-	}
 	servicesJSON, err := servicesToJSON(req.Services)
 	if err != nil {
 		return nil, fmt.Errorf("services json: %w", err)
@@ -95,9 +97,6 @@ RETURNING id, user_id, date, services, salon_name, stylist_name, memo, created_a
 }
 
 func (r *HairHistoryRepositoryPG) Update(ctx context.Context, historyID string, req entity.UpdateHairHistoryParams) (*entity.HairHistory, error) {
-	if r.Pool == nil {
-		return nil, errors.New("infra: nil pool")
-	}
 	if _, err := uuid.Parse(historyID); err != nil {
 		return nil, fmt.Errorf("invalid history id: %w", domain.ErrInvalidInput)
 	}
@@ -107,7 +106,7 @@ func (r *HairHistoryRepositoryPG) Update(ctx context.Context, historyID string, 
 		return nil, err
 	}
 	if existing == nil {
-		return nil, nil
+		return nil, domain.ErrNotFound
 	}
 
 	date := existing.Date
@@ -146,7 +145,7 @@ RETURNING id, user_id, date, services, salon_name, stylist_name, memo, created_a
 	h, err := scanHairHistory(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
+			return nil, domain.ErrNotFound
 		}
 		return nil, fmt.Errorf("update history: %w", err)
 	}
@@ -154,9 +153,6 @@ RETURNING id, user_id, date, services, salon_name, stylist_name, memo, created_a
 }
 
 func (r *HairHistoryRepositoryPG) Delete(ctx context.Context, historyID string) error {
-	if r.Pool == nil {
-		return errors.New("infra: nil pool")
-	}
 	if _, err := uuid.Parse(historyID); err != nil {
 		return fmt.Errorf("invalid history id: %w", domain.ErrInvalidInput)
 	}

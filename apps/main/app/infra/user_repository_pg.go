@@ -21,10 +21,15 @@ type UserRepositoryPG struct {
 
 var _ domain.UserRepository = (*UserRepositoryPG)(nil)
 
-func (r *UserRepositoryPG) Create(ctx context.Context) (*entity.User, error) {
-	if r.Pool == nil {
+// NewUserRepositoryPG returns a repository backed by pool. pool must be non-nil.
+func NewUserRepositoryPG(pool *pgxpool.Pool) (*UserRepositoryPG, error) {
+	if pool == nil {
 		return nil, errors.New("infra: nil pool")
 	}
+	return &UserRepositoryPG{Pool: pool}, nil
+}
+
+func (r *UserRepositoryPG) Create(ctx context.Context) (*entity.User, error) {
 	id := uuid.New().String()
 
 	row := r.Pool.QueryRow(ctx, `
@@ -37,9 +42,6 @@ RETURNING id, name, email, last_login_at, is_deactivated, created_at, updated_at
 }
 
 func (r *UserRepositoryPG) GetByID(ctx context.Context, userID string) (*entity.User, error) {
-	if r.Pool == nil {
-		return nil, errors.New("infra: nil pool")
-	}
 	row := r.Pool.QueryRow(ctx, `
 SELECT id, name, email, last_login_at, is_deactivated, created_at, updated_at
 FROM users WHERE id = $1
