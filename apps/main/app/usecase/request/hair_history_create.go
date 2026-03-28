@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/entity"
 )
 
 type CreateHistory struct {
-	UserID      string              `json:"-"`
+	UserID      string               `json:"-"`
 	Date        time.Time            `json:"date"`
-	Services    []domain.ServiceType `json:"services"`
-	SalonName   string              `json:"salonName"`
-	StylistName string              `json:"stylistName"`
-	Memo        string              `json:"memo"`
+	Services    []entity.ServiceType `json:"services"`
+	SalonName   string               `json:"salonName"`
+	StylistName string               `json:"stylistName"`
+	Memo        string               `json:"memo"`
 }
 
 func (r *CreateHistory) Validate() error {
@@ -35,7 +35,6 @@ func (r *CreateHistory) Validate() error {
 
 func NewCreateHistory(httpReq *http.Request) (*CreateHistory, error) {
 	req := &CreateHistory{}
-	// Expected path: /api/users/{userId}/histories
 	p := strings.TrimPrefix(httpReq.URL.Path, "/api/users/")
 	p = strings.Trim(p, "/")
 	parts := strings.Split(p, "/")
@@ -52,4 +51,3 @@ func NewCreateHistory(httpReq *http.Request) (*CreateHistory, error) {
 	}
 	return req, nil
 }
-

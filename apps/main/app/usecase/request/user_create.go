@@ -9,4 +9,3 @@ type CreateUser struct{}
 func NewCreateUser(_ *http.Request) (*CreateUser, error) {
 	return &CreateUser{}, nil
 }
-

@@ -20,4 +20,3 @@ func NewListHistories(httpReq *http.Request) (*ListHistories, error) {
 	}
 	return &ListHistories{UserID: parts[0]}, nil
 }
-

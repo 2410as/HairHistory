@@ -4,17 +4,8 @@ import (
 	"net/http"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/controller/render"
-	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
-
-type Users struct {
-	userUsecase *usecase.User
-}
-
-func NewUsers(userUsecase *usecase.User) *Users {
-	return &Users{userUsecase: userUsecase}
-}
 
 // Create handles POST /api/users
 func (a Users) Create(w http.ResponseWriter, r *http.Request) {
@@ -31,4 +22,3 @@ func (a Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	render.JSON(w, res)
 }
-

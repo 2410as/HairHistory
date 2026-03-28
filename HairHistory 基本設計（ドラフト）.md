@@ -1,6 +1,6 @@
 # HairHistory 基本設計（ドラフト）
 
-要件定義（`要件定義.md`）をもとにした、画面・データ・API のざっくり設計です。
+要件定義（`要件定義.md`）をもとにした、画面・データ・API のざっくり設計です。**モノレポ内 Go API（`apps/main`）のレイヤ・ファイル分割・ルート一覧は §5** に集約しています。
 
 目的は **「髪の履歴をメモして、ダメージを美容師が把握しやすくする」** こと。
 
@@ -188,7 +188,9 @@ UpdatedAt   time.Time     `json:"updatedAt"`
 
 ```
 
-### 2.3.3 リクエスト / レスポンス用 DTO
+### 2.3.3 リクエスト / レスポンス用 DTO（概念）
+
+実装では **JSON の形は `usecase/response` パッケージ**が組み立てる。一覧は `list`、単体は `ent`、ユーザー作成は `ent.id` など（**§5** のルーティング表・レイヤ説明と実コードを正とする）。以下はドメインに近い概念のメモ用。
 
 ```go
 
@@ -264,13 +266,17 @@ History HairHistory `json:"history"`
 
 ベースURL: `/api`
 
+0. **ヘルスチェック**
+
+- `GET /api/health` … 監視・デプロイ確認用（例: `{ "ok": true }`）
+
 1. **ユーザー作成**
 
 - `POST /api/users`
 
 - 内容: 新しい匿名ユーザーIDを発行
 
-- レスポンス: `CreateUserResponse`
+- レスポンス: 実装では `ent.id` 形式（§2.3.3 注記・§5）
 
 2. **履歴一覧取得**
 
@@ -278,29 +284,29 @@ History HairHistory `json:"history"`
 
 - 役割: 指定ユーザーの履歴一覧を取得（新しい順）
 
-- レスポンス: `ListHistoriesResponse`
+- レスポンス: 実装では `list` 配列（§5）
 
 3. **履歴作成**
 
 - `POST /api/users/{userId}/histories`
 
-- ボディ: `CreateHistoryRequest`
+- ボディ: `CreateHistoryRequest` 相当（日付・施術・サロン名等）
 
-- レスポンス: `CreateHistoryResponse`
+- レスポンス: 実装では `ent`（§5）
 
 4. **履歴更新**
 
 - `PUT /api/histories/{historyId}`
 
-- ボディ: `UpdateHistoryRequest`
+- ボディ: `UpdateHistoryRequest` 相当
 
-- レスポンス: `UpdateHistoryResponse`
+- レスポンス: 実装では `ent`（§5）
 
-5. **履歴削除（MVPで入れるかは検討）**
+5. **履歴削除**
 
 - `DELETE /api/histories/{historyId}`
 
-- レスポンスボディなし or `{ "ok": true }`
+- レスポンス: `{ "ok": true }`（実装済み想定）
 
 - --
 
@@ -316,63 +322,116 @@ History HairHistory `json:"history"`
 
 - --
 
-## 5. Go API のディレクトリ構成（案）
+## 5. バックエンド実装構成（`apps/main`）
 
-MVP向けのシンプル構成。`internal` 配下にレイヤーを分ける。
+モノレポ内の Go API。機能ごとの縦割り、usecase の request/response、domain service によるドメイン操作の集約を前提とする。**リポジトリのポートは `domain` パッケージ直下のインターフェース**（`UserRepository` / `HairHistoryRepository`）。`domain/repository` のような別パッケージには切り出さない。
 
-```text
-
-backend/
-
-cmd/
-
-api/
-
-main.go          // エントリポイント（HTTPサーバー起動）
-
-internal/
-
-http/
-
-handler/
-
-user_handler.go        // ユーザー関連ハンドラ（POST /api/users）
-
-history_handler.go     // 履歴関連ハンドラ（GET/POST/PUT/DELETE）
-
-router.go                // ルーティング定義（chi / mux / stdlib など）
-
-domain/
-
-model.go                 // User, HairHistory, ServiceType など
-
-repository/
-
-history_repository.go    // hair_histories 向けDBアクセス
-
-user_repository.go       // users 向けDBアクセス
-
-db.go                    // DB接続（PostgreSQL）初期化
-
-service/
-
-history_service.go       // 履歴のビジネスロジック（将来必要になったら）
-
-config/
-
-config.go                // 環境変数読み込み（DB URLなど）
+### 5.1 レイヤの流れ
 
 ```
+HTTP リクエスト
+  → controller（ハンドラ・ルーティング登録）
+  → usecase（アプリケーションフロー・request 組み立て・response 組み立て）
+  → domain/service（ドメイン操作・将来のルール集約）
+  → domain の Repository インターフェース
+  → infra（PostgreSQL 等の実装）
+```
 
-- **最初は無理に分けすぎない方針**:
+- **entity** … 永続化モデルと値オブジェクト（JSON タグは基本付けない。API 形は response が担当）
+- **domain** … 上記 Repository インターフェース（ポート）
+- **domain/service** … ユースケースが呼ぶドメインサービス（現状はリポジトリへの薄い委譲から始め、ルールが増えたらここに集約）
+- **usecase/request** … `*http.Request` から入力を取り出し、検証可能な構造体へ
+- **usecase/response** … JSON 用 DTO と `New…` コンストラクタ（例: `list` / `ent`）
+- **controller/render** … JSON 書き出し・エラー応答
 
-- まずは `handler` + `repository` + `domain` + `db` くらいの分割でOK。
+### 5.2 ルーティング（標準 `net/http` + `ServeMux`）
 
-- ロジックが増えてきたら、`service` レイヤーを厚くしていく。
+| メソッド | パス | 処理 |
+|---------|------|------|
+| GET | `/api/health` | ヘルスチェック |
+| POST | `/api/users` | ユーザー作成 |
+| GET | `/api/users/{userId}/histories` | 履歴一覧 |
+| POST | `/api/users/{userId}/histories` | 履歴作成 |
+| PUT | `/api/histories/{historyId}` | 履歴更新 |
+| DELETE | `/api/histories/{historyId}` | 履歴削除 |
 
-- Next.js からは `/api/*` をこの Go API に向けて呼び出す想定（Railway 上でホスト）。
+パスパラメータは **サードパーティのルータに依存せず**、`usecase/request` 側で `URL.Path` を `strings` により分解して取得する。
+
+### 5.3 ファイル分割の方針
+
+**原則: 役割・操作ごとに 1 ファイル。** 機能名のプレフィックスで揃える（例: `hair_history_list.go`）。
+
+**`app/domain`**
+
+| ファイル | 内容 |
+|---------|------|
+| `user_repository.go` | `UserRepository` |
+| `hair_history_repository.go` | `HairHistoryRepository` |
+
+**`app/domain/entity`**
+
+モデル・パラメータ・列挙を**種類ごと**に分割（例: `user.go`, `hair_history.go`, `service_type.go`, `create_hair_history_params.go`）。`Created()` / `Updated()` などのライフサイクル用メソッドを載せる。
+
+**`app/domain/service/*`**
+
+`Service` インターフェースと `NewService` を `service.go` に置き、操作は `create.go` / `finder_*.go` など**ファイル単位**で分割する。
+
+**`app/infra`**
+
+| ファイル | 内容 |
+|---------|------|
+| `user_repository_pg.go` | `UserRepository` の PostgreSQL 実装（現状スタブ可） |
+| `hair_history_repository_pg.go` | `HairHistoryRepository` の実装 |
+
+**`app/controller`**
+
+| 種別 | 例 |
+|------|-----|
+| ルーティング | `router.go`（組み立て）、`router_health.go`、`router_users.go`、`router_hair_history.go` |
+| 依存の型 | `deps_types.go`（`Deps`） |
+| ハンドラ | `health_type.go` + `health_get.go`、`users_type.go` + `users_create.go`、`hair_history_type.go` + `hair_history_list.go` など**操作ごと** |
+| JSON | `render/json.go`, `render/error.go` |
+
+**`app/usecase`**
+
+| 種別 | 例 |
+|------|-----|
+| 集約型 | `user_type.go`, `hair_history_type.go`（コンストラクタのみ） |
+| メソッド | `user_create.go`, `hair_history_list.go`, `hair_history_create.go`, … |
+
+**`app/usecase/request`**
+
+`hair_history_list.go`, `hair_history_create.go`, … , `user_create.go` のように**エンドポイント入力ごと**。
+
+**`app/usecase/response`**
+
+- 履歴 API: `history_ent.go`（内部用マッパ）+ `hair_history_list.go` 等**操作ごと**
+- ユーザー: `user_ent.go`, `user_create.go`
+
+**`app/utility`**
+
+例: `service_type_marshal.go` / `service_type_unmarshal.go` のように**処理単位**。
+
+**エントリ（`apps/main`）**
+
+| ファイル | 内容 |
+|---------|------|
+| `main.go` | `ListenAndServe` のみ |
+| `wire.go` | `wireDeps()` … repo → domain service → usecase の配線 |
+
+### 5.4 新機能を足すとき（例: 別リソース）
+
+1. `domain/entity` にモデルをファイル追加  
+2. `domain` に `*Repository` インターフェースをファイル追加  
+3. `domain/service/<name>` を追加  
+4. `infra/*_repository_pg.go`  
+5. `usecase/*` / `request` / `response`  
+6. `controller/*` と `router_*` にルート登録  
+7. `wire.go` に配線追加  
+
+フロント（例: Next.js）からは `/api/*` をこの Go API に向けて呼び出す想定。
 
 - --
 
-この設計はドラフトです。画面項目やAPI・ディレクトリ構成の詳細は、実装しながら一緒に調整していきましょう。
+この設計はドラフトです。画面項目や API の細部は、実装しながら調整する。
 

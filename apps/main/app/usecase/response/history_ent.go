@@ -3,56 +3,8 @@ package response
 import (
 	"time"
 
-	"github.com/annasakai/hairhistorymemo/apps/main/app/domain"
+	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/entity"
 )
-
-// ---
-
-type ListHistories struct {
-	List []*historyEnt `json:"list"`
-}
-
-func NewListHistories(histories []domain.HairHistory) *ListHistories {
-	return &ListHistories{
-		List: newHistoryEntList(histories),
-	}
-}
-
-// ---
-
-type CreateHistory struct {
-	Ent *historyEnt `json:"ent"`
-}
-
-func NewCreateHistory(h domain.HairHistory) *CreateHistory {
-	return &CreateHistory{
-		Ent: newHistoryEnt(h),
-	}
-}
-
-// ---
-
-type UpdateHistory struct {
-	Ent *historyEnt `json:"ent"`
-}
-
-func NewUpdateHistory(h domain.HairHistory) *UpdateHistory {
-	return &UpdateHistory{
-		Ent: newHistoryEnt(h),
-	}
-}
-
-// ---
-
-type DeleteHistory struct {
-	OK bool `json:"ok"`
-}
-
-func NewDeleteHistory(ok bool) *DeleteHistory {
-	return &DeleteHistory{OK: ok}
-}
-
-// ---
 
 type historyEnt struct {
 	ID          string    `json:"id"`
@@ -66,7 +18,7 @@ type historyEnt struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-func newHistoryEnt(h domain.HairHistory) *historyEnt {
+func newHistoryEnt(h entity.HairHistory) *historyEnt {
 	services := make([]string, len(h.Services))
 	for i, s := range h.Services {
 		services[i] = string(s)
@@ -84,7 +36,7 @@ func newHistoryEnt(h domain.HairHistory) *historyEnt {
 	}
 }
 
-func newHistoryEntList(histories []domain.HairHistory) []*historyEnt {
+func newHistoryEntList(histories []entity.HairHistory) []*historyEnt {
 	out := make([]*historyEnt, 0, len(histories))
 	for i := range histories {
 		out = append(out, newHistoryEnt(histories[i]))
