@@ -44,6 +44,15 @@ go run .
 - ポート: 環境変数 `PORT` があればそれ（例: `8080` → `:8080`）、なければ `:8080`。
 - `DATABASE_URL` が空なら、上記 Docker 用のデフォルト URL を使う（起動時にログに出る）。
 
+**任意の環境変数**
+
+| 変数 | 説明 |
+|------|------|
+| `HAIR_CORS_ORIGINS` | カンマ区切りのオリジン。未設定時は `http://localhost:3000` のみ許可（Next.js ローカル用）。 |
+| `HAIR_HEALTH_PING_TIMEOUT` | ヘルスチェックの DB `Ping` 期限（`time.ParseDuration` 形式、例: `2s`）。未設定・不正時は `2s`。 |
+
+`GET /api/health` は DB プールに `Ping` する。Postgres に届かない場合は **503**（`{ "error": "database unavailable" }`）。
+
 ### 4. 動作確認の例
 
 ```bash
@@ -56,10 +65,10 @@ echo "$UID"
 
 # jq が無い場合は JSON を目で見て id をコピー
 
-# 履歴作成
+# 履歴作成（services は1件以上必須。salonName / stylistName は空文字可）
 curl -s -X POST "localhost:8080/api/users/$UID/histories" \
   -H 'Content-Type: application/json' \
-  -d '{"date":"2026-03-28T12:00:00Z","services":["color"],"salonName":"サロン","stylistName":"太郎","memo":"メモ"}'
+  -d '{"date":"2026-03-28T12:00:00Z","services":["color"],"salonName":"","stylistName":"","memo":"メモ"}'
 
 # 一覧（各要素の id が履歴 UUID）
 curl -s "localhost:8080/api/users/$UID/histories"

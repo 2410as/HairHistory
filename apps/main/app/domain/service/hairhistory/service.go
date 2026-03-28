@@ -23,10 +23,12 @@ type Service interface {
 
 type service struct {
 	hairHistoryRepo domain.HairHistoryRepository
+	userRepo        domain.UserRepository
 }
 
-func NewService(hairHistoryRepo domain.HairHistoryRepository) Service {
+func NewService(hairHistoryRepo domain.HairHistoryRepository, userRepo domain.UserRepository) Service {
 	return &service{
 		hairHistoryRepo: hairHistoryRepo,
+		userRepo:        userRepo,
 	}
 }

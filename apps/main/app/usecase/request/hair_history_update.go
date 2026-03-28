@@ -20,6 +20,13 @@ type UpdateHistory struct {
 	Memo        *string               `json:"memo,omitempty"`
 }
 
+func (r *UpdateHistory) Validate() error {
+	if r.Services == nil {
+		return nil
+	}
+	return entity.ValidateServices(*r.Services)
+}
+
 func NewUpdateHistory(httpReq *http.Request) (*UpdateHistory, error) {
 	req := &UpdateHistory{}
 	id := chi.URLParam(httpReq, "historyId")
@@ -29,6 +36,9 @@ func NewUpdateHistory(httpReq *http.Request) (*UpdateHistory, error) {
 	req.HistoryID = id
 
 	if err := json.NewDecoder(httpReq.Body).Decode(req); err != nil {
+		return nil, err
+	}
+	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 	return req, nil

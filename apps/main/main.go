@@ -36,12 +36,18 @@ func main() {
 	defer pool.Close()
 
 	// --- repositories (infra) ---
-	userRepo := &appinfra.UserRepositoryPG{Pool: pool}
-	hairHistoryRepo := &appinfra.HairHistoryRepositoryPG{Pool: pool}
+	userRepo, err := appinfra.NewUserRepositoryPG(pool)
+	if err != nil {
+		log.Fatalf("user repository: %v", err)
+	}
+	hairHistoryRepo, err := appinfra.NewHairHistoryRepositoryPG(pool)
+	if err != nil {
+		log.Fatalf("hair history repository: %v", err)
+	}
 
 	// --- domain services ---
 	userSvc := user.NewService(userRepo)
-	hairHistorySvc := hairhistory.NewService(hairHistoryRepo)
+	hairHistorySvc := hairhistory.NewService(hairHistoryRepo, userRepo)
 
 	// --- usecases ---
 	userUsecase := usecase.NewUser(userSvc)
@@ -51,6 +57,7 @@ func main() {
 	deps := controller.Deps{
 		User:        userUsecase,
 		HairHistory: hairHistoryUsecase,
+		DB:          pool,
 	}
 	handler := controller.NewRouter(deps)
 

@@ -21,16 +21,10 @@ type CreateHistory struct {
 }
 
 func (r *CreateHistory) Validate() error {
-	if r.SalonName == "" {
-		return errors.New("salonName is required")
-	}
-	if r.StylistName == "" {
-		return errors.New("stylistName is required")
-	}
 	if r.Date.IsZero() {
 		return errors.New("date is required")
 	}
-	return nil
+	return entity.ValidateServices(r.Services)
 }
 
 func NewCreateHistory(httpReq *http.Request) (*CreateHistory, error) {
