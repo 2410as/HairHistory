@@ -1,3 +1,6 @@
 body { font-family: system-ui, sans-serif; margin: 1.25rem; line-height: 1.5; max-width: 40rem; }
 button, input, select { font: inherit; margin-right: 0.5rem; }
 ul { padding-left: 1.25rem; }
+.hist-list li { margin-bottom: 0.75rem; }
+.hist-actions { margin-left: 0.5rem; }
+.hist-edit { margin-top: 0.35rem; }
