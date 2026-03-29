@@ -1,0 +1,3 @@
+body { font-family: system-ui, sans-serif; margin: 1.25rem; line-height: 1.5; max-width: 40rem; }
+button, input, select { font: inherit; margin-right: 0.5rem; }
+ul { padding-left: 1.25rem; }
