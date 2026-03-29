@@ -6,6 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 
 const api = () => process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
 
+/** `YYYY-MM-DD` → RFC3339 UTC（API の date 用） */
+function dayToISO(d: string) {
+  return `${d}T00:00:00.000Z`;
+}
+
 type Row = {
   id: string;
   date: string;
@@ -46,10 +51,16 @@ export default function HistoryPage() {
   const router = useRouter();
   const uid = typeof params.userId === "string" ? params.userId : params.userId?.[0] ?? "";
   const [list, setList] = useState<Row[]>([]);
+  const [addDay, setAddDay] = useState(() => new Date().toISOString().slice(0, 10));
   const [svc, setSvc] = useState("color");
+  const [salon, setSalon] = useState("");
+  const [stylist, setStylist] = useState("");
   const [memo, setMemo] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
+  const [editDay, setEditDay] = useState("");
   const [editSvc, setEditSvc] = useState("color");
+  const [editSalon, setEditSalon] = useState("");
+  const [editStylist, setEditStylist] = useState("");
   const [editMemo, setEditMemo] = useState("");
 
   const load = useCallback(async () => {
@@ -75,21 +86,27 @@ export default function HistoryPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        date: new Date().toISOString(),
+        date: dayToISO(addDay),
         services: [svc],
-        salonName: "",
-        stylistName: "",
+        salonName: salon,
+        stylistName: stylist,
         memo,
       }),
     });
     if (!res.ok) return;
     setMemo("");
+    setSalon("");
+    setStylist("");
+    setAddDay(new Date().toISOString().slice(0, 10));
     void load();
   }
 
   function startEdit(h: Row) {
     setEditId(h.id);
+    setEditDay(h.date.slice(0, 10));
     setEditSvc(h.services[0] ?? "color");
+    setEditSalon(h.salonName ?? "");
+    setEditStylist(h.stylistName ?? "");
     setEditMemo(h.memo);
   }
 
@@ -99,7 +116,13 @@ export default function HistoryPage() {
     const res = await fetch(`${api()}/api/histories/${editId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ services: [editSvc], memo: editMemo }),
+      body: JSON.stringify({
+        date: dayToISO(editDay),
+        services: [editSvc],
+        salonName: editSalon,
+        stylistName: editStylist,
+        memo: editMemo,
+      }),
     });
     if (!res.ok) return;
     setEditId(null);
@@ -121,27 +144,60 @@ export default function HistoryPage() {
       </p>
       <h1>マイ履歴</h1>
       <p>この URL を美容師さんと共有できます。</p>
-      <form onSubmit={add}>
-        <SvcSelect value={svc} onChange={setSvc} />
-        <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="メモ" />
-        <button type="submit">追加</button>
+      <form onSubmit={add} className="hist-add">
+        <div className="form-row">
+          <label>
+            日付{" "}
+            <input type="date" value={addDay} onChange={(e) => setAddDay(e.target.value)} required />
+          </label>
+          <SvcSelect value={svc} onChange={setSvc} />
+        </div>
+        <div className="form-row">
+          <input value={salon} onChange={(e) => setSalon(e.target.value)} placeholder="サロン名" />
+          <input value={stylist} onChange={(e) => setStylist(e.target.value)} placeholder="スタイリスト名" />
+        </div>
+        <div className="form-row">
+          <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="メモ（ダメージ・薬剤など）" />
+          <button type="submit">追加</button>
+        </div>
       </form>
       <ul className="hist-list">
         {list.map((h) => (
           <li key={h.id}>
             {editId === h.id ? (
               <form onSubmit={saveEdit} className="hist-edit">
-                <SvcSelect value={editSvc} onChange={setEditSvc} />
-                <input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="メモ" />
-                <button type="submit">保存</button>
-                <button type="button" onClick={() => setEditId(null)}>
-                  キャンセル
-                </button>
+                <div className="form-row">
+                  <label>
+                    日付{" "}
+                    <input type="date" value={editDay} onChange={(e) => setEditDay(e.target.value)} required />
+                  </label>
+                  <SvcSelect value={editSvc} onChange={setEditSvc} />
+                </div>
+                <div className="form-row">
+                  <input
+                    value={editSalon}
+                    onChange={(e) => setEditSalon(e.target.value)}
+                    placeholder="サロン名"
+                  />
+                  <input
+                    value={editStylist}
+                    onChange={(e) => setEditStylist(e.target.value)}
+                    placeholder="スタイリスト名"
+                  />
+                </div>
+                <div className="form-row">
+                  <input value={editMemo} onChange={(e) => setEditMemo(e.target.value)} placeholder="メモ" />
+                  <button type="submit">保存</button>
+                  <button type="button" onClick={() => setEditId(null)}>
+                    キャンセル
+                  </button>
+                </div>
               </form>
             ) : (
               <>
                 <span>
-                  {h.date.slice(0, 10)} — {h.services.join(", ")} — {h.memo || "（なし）"}
+                  {h.date.slice(0, 10)} — {h.services.join(", ")} — {h.salonName || "サロン未入力"} —{" "}
+                  {h.stylistName || "担当未入力"} — {h.memo || "（メモなし）"}
                 </span>
                 <span className="hist-actions">
                   <button type="button" onClick={() => startEdit(h)}>
