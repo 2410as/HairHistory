@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -138,13 +137,12 @@ export default function HistoryPage() {
   }
 
   return (
-    <main>
-      <p>
-        <Link href="/">← トップ</Link>
-      </p>
+    <main className="hist-main">
       <h1>マイ履歴</h1>
-      <p>この URL を美容師さんと共有できます。</p>
-      <form onSubmit={add} className="hist-add">
+      <p className="hist-share-hint">このページの URL を美容師さんと共有できます。</p>
+      <section className="hist-section" aria-labelledby="add-heading">
+        <h2 id="add-heading">新しい履歴を追加</h2>
+        <form onSubmit={add} className="hist-add">
         <div className="form-row">
           <label>
             日付{" "}
@@ -160,8 +158,11 @@ export default function HistoryPage() {
           <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="メモ（ダメージ・薬剤など）" />
           <button type="submit">追加</button>
         </div>
-      </form>
-      <ul className="hist-list">
+        </form>
+      </section>
+      <section className="hist-section" aria-labelledby="list-heading">
+        <h2 id="list-heading">履歴一覧</h2>
+        <ul className="hist-list">
         {list.map((h) => (
           <li key={h.id}>
             {editId === h.id ? (
@@ -211,7 +212,8 @@ export default function HistoryPage() {
             )}
           </li>
         ))}
-      </ul>
+        </ul>
+      </section>
     </main>
   );
 }

@@ -1,8 +1,17 @@
 body { font-family: system-ui, sans-serif; margin: 1.25rem; line-height: 1.5; max-width: 40rem; }
 button, input, select { font: inherit; margin-right: 0.5rem; }
 ul { padding-left: 1.25rem; }
+.hist-header { border-bottom: 1px solid #ddd; padding-bottom: 0.75rem; margin-bottom: 1rem; }
+.hist-brand { font-weight: 700; font-size: 1.15rem; margin: 0 0 0.25rem; }
+.hist-brand a { text-decoration: none; color: inherit; }
+.hist-brand a:hover { text-decoration: underline; }
+.hist-tagline { margin: 0 0 0.5rem; font-size: 0.95rem; color: #444; }
+.hist-header nav { font-size: 0.9rem; }
+.hist-main h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+.hist-share-hint { margin: 0 0 1rem; font-size: 0.95rem; color: #555; }
+.hist-section h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }
-.hist-add { margin-bottom: 1rem; }
+.hist-add { margin-bottom: 0; }
 .hist-list li { margin-bottom: 0.75rem; }
 .hist-actions { margin-left: 0.5rem; }
 .hist-edit { margin-top: 0.35rem; }
