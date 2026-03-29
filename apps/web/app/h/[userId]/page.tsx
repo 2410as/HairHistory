@@ -3,6 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { SharePageQR } from "./SharePageQR";
+
 const api = () => process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
 
 /** `YYYY-MM-DD` → RFC3339 UTC（API の date 用） */
@@ -140,6 +142,7 @@ export default function HistoryPage() {
     <main className="hist-main">
       <h1>マイ履歴</h1>
       <p className="hist-share-hint">このページの URL を美容師さんと共有できます。</p>
+      <SharePageQR />
       <section className="hist-section" aria-labelledby="add-heading">
         <h2 id="add-heading">新しい履歴を追加</h2>
         <form onSubmit={add} className="hist-add">

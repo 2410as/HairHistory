@@ -9,6 +9,10 @@ ul { padding-left: 1.25rem; }
 .hist-header nav { font-size: 0.9rem; }
 .hist-main h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
 .hist-share-hint { margin: 0 0 1rem; font-size: 0.95rem; color: #555; }
+.hist-qr-loading { font-size: 0.9rem; color: #666; margin: 0 0 1rem; }
+.hist-qr-hint { font-size: 0.9rem; color: #555; margin: 0 0 0.5rem; max-width: 22rem; }
+.hist-qr-box { padding: 0.5rem; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; width: fit-content; margin-bottom: 0.5rem; }
+.hist-qr-url code { font-size: 0.75rem; word-break: break-all; }
 .hist-section h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
 .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }
 .hist-add { margin-bottom: 0; }
