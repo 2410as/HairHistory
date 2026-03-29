@@ -34,6 +34,7 @@ export default function HomePage() {
 
   function goQR() {
     if (saved) router.push(`/h/${saved}`);
+    else document.getElementById("landing-start")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   return (
@@ -53,9 +54,13 @@ export default function HomePage() {
                   履歴
                 </Link>
               ) : (
-                <span className="landing-nav-link landing-nav-link--disabled" title="先にはじめるでIDを発行">
+                <a
+                  href="#landing-start"
+                  className="landing-nav-link landing-nav-link--hint"
+                  title="先に「はじめる」でIDを発行すると、ここからマイ履歴（/h/…）を開けます"
+                >
                   履歴
-                </span>
+                </a>
               )}
               <span className="landing-nav-link landing-nav-link--disabled" title="準備中">
                 予約
@@ -69,7 +74,7 @@ export default function HomePage() {
               className="landing-qr-btn"
               onClick={goQR}
               aria-label="マイ履歴のQRを表示"
-              title={saved ? "マイ履歴へ" : "先にはじめるでIDを発行"}
+              title={saved ? "マイ履歴へ" : "タップで「はじめる」へスクロール（ID発行後はマイ履歴へ）"}
             >
               <Svg cls="landing-qr-ico">
                 <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm14 0h3v3h-3v-3zm-4 4h3v3h-3v-3zm4-4h3v3h-3v-3z" />
@@ -86,7 +91,7 @@ export default function HomePage() {
             過去の施術、ダメージの記憶。スマホに保存されたあなたの髪の履歴を、QRコード一つでプロの手に。
           </p>
           <div className="landing-hero-cta">
-            <button type="button" className="landing-btn landing-btn--black" onClick={start}>
+            <button type="button" id="landing-start" className="landing-btn landing-btn--black" onClick={start}>
               はじめる（IDを発行する）
             </button>
             <a href="#features" className="landing-btn landing-btn--muted">
