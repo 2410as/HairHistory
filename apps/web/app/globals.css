@@ -14,8 +14,20 @@ ul { padding-left: 1.25rem; }
 .hist-qr-box { padding: 0.5rem; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; width: fit-content; margin-bottom: 0.5rem; }
 .hist-qr-url code { font-size: 0.75rem; word-break: break-all; }
 .hist-section h2 { font-size: 1.05rem; margin: 0 0 0.5rem; }
+.hist-spotlight-intro, .hist-older-intro { font-size: 0.9rem; color: #555; margin: 0 0 0.75rem; line-height: 1.45; }
+.hist-card-grid { display: grid; gap: 0.75rem; grid-template-columns: 1fr; margin-bottom: 0.25rem; }
+@media (min-width: 34rem) {
+  .hist-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.hist-card { border: 1px solid #ddd; border-radius: 10px; padding: 0.85rem 1rem; background: #fafafa; box-shadow: 0 1px 3px rgb(0 0 0 / 0.07); }
+.hist-card-date { font-size: 0.8rem; color: #666; display: block; margin-bottom: 0.35rem; }
+.hist-card-svc { font-size: 1.05rem; font-weight: 600; margin: 0 0 0.4rem; line-height: 1.3; }
+.hist-card-memo { font-size: 0.95rem; margin: 0 0 0.45rem; line-height: 1.45; color: #222; }
+.hist-card-sub { font-size: 0.82rem; color: #555; margin: 0 0 0.5rem; }
+.hist-card-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }
 .hist-add { margin-bottom: 0; }
 .hist-list li { margin-bottom: 0.75rem; }
+.hist-list-compact { font-size: 0.9rem; }
 .hist-actions { margin-left: 0.5rem; }
 .hist-edit { margin-top: 0.35rem; }
