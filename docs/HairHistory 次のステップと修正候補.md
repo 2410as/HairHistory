@@ -4,6 +4,24 @@
 
 ---
 
+## 0. 優先度高（現在も未対応）
+
+1. **内部エラー詳細の露出を抑制（本番向け）**  
+   - 対象: `render.ErrorFromUsecase` の 5xx 系、`users_create.go` の 500 応答。  
+   - 現状: `err.Error()` をそのまま返す経路がある。  
+   - 対応: 5xx は固定メッセージ（例: `"internal server error"`）に統一し、詳細はサーバーログへ。
+
+2. **作成系APIの HTTP ステータスを 201 Created に統一**  
+   - 対象: `CreateUser`, `CreateHistory`。  
+   - 現状: 成功時 `200 OK`。  
+   - 対応: 成功レスポンスを `201` 化（REST 慣例に合わせる）。
+
+3. **main.go の起動構成を安定化（シャットダウン方式の統一）**  
+   - 現状: ブランチや差分により、`signal.NotifyContext` を使う版と使わない版が混在しやすい。  
+   - 対応: どちらかに統一し、グレースフルシャットダウンを標準化する。
+
+---
+
 ## 1. すぐ直せる／詰めたい箇所（フロント）
 
 | 項目 | 現状 | 提案 |
@@ -49,6 +67,21 @@
 - **本番 URL**: `NEXT_PUBLIC_API_URL` とフロントのデプロイ先を一致させ、**HTTPS** を前提に CORS を設定。
 - **DB バックアップ・復元**（要件の非機能）: 運用方針のドキュメント化。
 - **レート制限・不正削除**: URL を知れば履歴が編集可能なモデルのままなら、最低限の注意書き（ポリシー）と、将来的なトークン保護の検討。
+- **`hair_history_repository_pg.go` の Update**: 現在の `SELECT -> UPDATE` 2段階方式は MVP として運用可。将来的には **Tx で囲む**か **COALESCE を使った部分更新SQL**に寄せて整合性を上げる。
+- **依存更新（`go.mod`）**: `golang.org/x/crypto` は間接依存のため、次の `pgx` 更新タイミングで `go get -u` / 依存棚卸しを実施する。
+- **`main.go` の DB接続情報**: `defaultDatabaseURL` の開発用ハードコードは現状許容。将来的に `.env` / `godotenv` 導入で環境変数管理へ移行を検討する。
+- **ID パースの重複**: `router.go` 側の path param 取得と request 層のパースが二重になっているため、将来的に **request 層へ集約**する（`_ =` で捨てる実装を減らす）。
+- **`writeError` の情報露出**: 現在はエラーメッセージをそのまま返している。MVPでは許容だが、本番では 5xx は固定文言に寄せるなど **内部情報リーク対策**を検討する。
+- **`request/update_history.go` バリデーション**: `NewUpdateHistory` に `historyID` 空チェックが無い。`NewDeleteHistory` と同等の入力検証を追加して挙動を揃える。
+- **ルーティング方針（Go 1.22）**: いまは `chi` を採用中。`net/http` の新記法（`"GET /path"`）に寄せるかは、ミドルウェア・既存設計との整合で判断する。
+- **`controller/router.go` の広いマッチ**: `/api/users/` のような広いマッチは将来ルート衝突の温床。Go 1.22 の `GET /api/users/{userId}/histories` 形式（または chi で同等に厳密化）を検討。
+- **`usecase/request/create_history.go` の必須項目**: `salonName` / `stylistName` が required 扱いなら、基本設計（任意）との整合を確認する。
+- **`controller/health.go` の `_ = r`**: 不要な捨て代入は削除（引数名 `_` か未使用で整理）。
+- **`render/render.go` の 500 エラー**: `ErrorInternalServer` で内部エラー文言をそのまま返している場合は、本番で固定メッセージ化を検討。
+- **`usecase/request.go` のレイヤー境界**: `*http.Request` 依存のデコード処理が usecase 層にある。厳密に分離するなら controller 側に移し、usecase へはDTOを渡す形へ整理。
+- **`deps.go` の `Deps` struct**: 現在 main.go は個別DI。`Deps` の利用方針（復活 or 廃止）を決めてコード上の一貫性を持たせる。
+- **作成系APIのステータスコード**: `CreateUser` / `CreateHistory` の成功時は `200 OK` ではなく `201 Created` がよりRESTful（次PRで調整）。
+- **`main.go` の PORT 取得**: Railway デプロイを考えると `PORT` 環境変数を優先する実装に統一（未設定時は `8080` フォールバック）。
 
 ---
 
@@ -57,6 +90,9 @@
 - **E2E / 結合テスト**: 履歴の追加・編集・削除・404 リダイレクトの自動テスト。
 - **アクセシビリティ**: フォーカスリング、コントラスト、`aria` の見直し（特にチップボタン・モーダル化した場合）。
 - **デザイン統一**: ランディング（`landing-*`）とアーカイブ（`archive-*`）のタイポ・余白トークンを共通化するか方針決め。
+- **ドキュメント配置**: ルート直下の設計ドキュメント（4ファイル）を `docs/` に集約し、README からリンクする構成へ整理。
+- **Markdown体裁**: 区切り線は `- --` ではなく `---` に統一。
+- **`README.md` 末尾改行**: POSIX準拠で最終行の改行を追加。
 
 ---
 

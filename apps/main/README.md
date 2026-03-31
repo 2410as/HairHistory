@@ -85,7 +85,7 @@ curl -s -X DELETE "localhost:8080/api/histories/$HID"
 
 ## レイヤ・ファイル構成
 
-リポジトリルートの **`HairHistory 基本設計（ドラフト）.md` §5** を参照。
+リポジトリルートの **`docs/HairHistory 基本設計（ドラフト）.md` §5** を参照。
 
 ## データモデル（DB）
 
