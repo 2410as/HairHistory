@@ -1,6 +1,5 @@
 # HairHistory 実装タスク
 
-このファイルは「進捗 + 次に直すこと」をまとめた1枚です。
 
 ---
 
@@ -29,6 +28,8 @@
 - ルート厳密化（将来衝突回避）
 - `usecase/request` の `*http.Request` 依存整理
 - CONTACT / PRIVACY / TERMS 実リンク化
+- `main.go` の CORS デフォルト設定に警告ログ追加（`HAIR_CORS_ORIGINS` 未設定時）
+- `uchi.NewRouter()` ラッパーの方針決定（維持するか、直接 `chi.NewRouter()` に戻すか）
 
 ## 拡張（任意）
 
@@ -37,6 +38,9 @@
 - ダメージサマリー
 - 通知 / リマインド
 - E2Eテスト整備
+- docs の作業メモ運用ルール決定（`docs/` 管理 or `.gitignore`）
+- CSSエラー色を変数化（例: `--color-error`）
+- `apps/web/app/h/[userId]/page.tsx` の state 整理（将来的に `useReducer` やカスタムフックへ分離）
 
 ---
 
