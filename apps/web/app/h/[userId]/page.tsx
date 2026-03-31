@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { readApiErrorMessage, readFetchFailureMessage } from "../../../lib/apiError";
 import { SharePageQR } from "./SharePageQR";
 
 const api = () => process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
@@ -72,18 +73,55 @@ export default function HistoryPage() {
   const [editMemo, setEditMemo] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [copyOk, setCopyOk] = useState(false);
+  const [copyErr, setCopyErr] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [savingAdd, setSavingAdd] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savingDeleteId, setSavingDeleteId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!uid) return;
-    const res = await fetch(`${api()}/api/users/${uid}/histories`);
-    if (res.status === 404) {
-      router.push("/");
-      return;
-    }
-    if (!res.ok) return;
-    const j = (await res.json()) as { list?: Row[] };
-    setList(j.list ?? []);
-  }, [uid, router]);
+  const load = useCallback(
+    async (opts?: { showLoading?: boolean }) => {
+      const showLoading = opts?.showLoading !== false;
+      if (!uid) return;
+      if (showLoading) {
+        setRecordsLoading(true);
+        setRecordsError(null);
+      }
+      try {
+        const res = await fetch(`${api()}/api/users/${uid}/histories`);
+        if (res.status === 404) {
+          router.push("/");
+          return;
+        }
+        if (!res.ok) {
+          const msg = await readApiErrorMessage(res);
+          if (showLoading) {
+            setRecordsError(msg);
+            setList([]);
+          } else {
+            setNotice(msg);
+          }
+          return;
+        }
+        const j = (await res.json()) as { list?: Row[] };
+        setList(j.list ?? []);
+        if (showLoading) setRecordsError(null);
+      } catch (e) {
+        const msg = readFetchFailureMessage(e);
+        if (showLoading) {
+          setRecordsError(msg);
+          setList([]);
+        } else {
+          setNotice(msg);
+        }
+      } finally {
+        if (showLoading) setRecordsLoading(false);
+      }
+    },
+    [uid, router],
+  );
 
   useEffect(() => {
     void load();
@@ -91,24 +129,35 @@ export default function HistoryPage() {
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!uid) return;
-    const res = await fetch(`${api()}/api/users/${uid}/histories`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: dayToISO(addDay),
-        services: [svc],
-        salonName: salon,
-        stylistName: stylist,
-        memo,
-      }),
-    });
-    if (!res.ok) return;
-    setMemo("");
-    setSalon("");
-    setStylist("");
-    setAddDay(new Date().toISOString().slice(0, 10));
-    void load();
+    if (!uid || savingAdd) return;
+    setNotice(null);
+    setSavingAdd(true);
+    try {
+      const res = await fetch(`${api()}/api/users/${uid}/histories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: dayToISO(addDay),
+          services: [svc],
+          salonName: salon,
+          stylistName: stylist,
+          memo,
+        }),
+      });
+      if (!res.ok) {
+        setNotice(await readApiErrorMessage(res));
+        return;
+      }
+      setMemo("");
+      setSalon("");
+      setStylist("");
+      setAddDay(new Date().toISOString().slice(0, 10));
+      await load({ showLoading: false });
+    } catch (e) {
+      setNotice(readFetchFailureMessage(e));
+    } finally {
+      setSavingAdd(false);
+    }
   }
 
   function startEdit(h: Row) {
@@ -122,38 +171,61 @@ export default function HistoryPage() {
 
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
-    if (!editId) return;
-    const res = await fetch(`${api()}/api/histories/${editId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: dayToISO(editDay),
-        services: [editSvc],
-        salonName: editSalon,
-        stylistName: editStylist,
-        memo: editMemo,
-      }),
-    });
-    if (!res.ok) return;
-    setEditId(null);
-    void load();
+    if (!editId || savingEdit) return;
+    setNotice(null);
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`${api()}/api/histories/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: dayToISO(editDay),
+          services: [editSvc],
+          salonName: editSalon,
+          stylistName: editStylist,
+          memo: editMemo,
+        }),
+      });
+      if (!res.ok) {
+        setNotice(await readApiErrorMessage(res));
+        return;
+      }
+      setEditId(null);
+      await load({ showLoading: false });
+    } catch (e) {
+      setNotice(readFetchFailureMessage(e));
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   async function remove(id: string) {
     if (!globalThis.confirm("この履歴を削除しますか？")) return;
-    const res = await fetch(`${api()}/api/histories/${id}`, { method: "DELETE" });
-    if (!res.ok) return;
-    if (editId === id) setEditId(null);
-    void load();
+    setNotice(null);
+    setSavingDeleteId(id);
+    try {
+      const res = await fetch(`${api()}/api/histories/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setNotice(await readApiErrorMessage(res));
+        return;
+      }
+      if (editId === id) setEditId(null);
+      await load({ showLoading: false });
+    } catch (e) {
+      setNotice(readFetchFailureMessage(e));
+    } finally {
+      setSavingDeleteId(null);
+    }
   }
 
   async function copyShareUrl() {
+    setCopyErr(false);
     try {
       await navigator.clipboard.writeText(globalThis.location?.href ?? "");
       setCopyOk(true);
       setTimeout(() => setCopyOk(false), 2000);
     } catch {
-      /* ignore */
+      setCopyErr(true);
     }
   }
 
@@ -210,8 +282,10 @@ export default function HistoryPage() {
           />
         </div>
         <div className="archive-record-actions">
-          <button type="submit">保存</button>
-          <button type="button" onClick={() => setEditId(null)}>
+          <button type="submit" disabled={savingEdit}>
+            {savingEdit ? "保存中…" : "保存"}
+          </button>
+          <button type="button" disabled={savingEdit} onClick={() => setEditId(null)}>
             キャンセル
           </button>
         </div>
@@ -228,6 +302,15 @@ export default function HistoryPage() {
             カラー、ブリーチ、パーマなど、すべての施術履歴を記録。あなたの髪の履歴を、プロの精度で管理します。
           </p>
         </header>
+
+        {notice ? (
+          <div className="app-notice" role="alert">
+            <span className="app-notice__text">{notice}</span>
+            <button type="button" className="app-notice__dismiss" onClick={() => setNotice(null)}>
+              閉じる
+            </button>
+          </div>
+        ) : null}
 
         <div className="archive-layout">
           <aside className="archive-sidebar">
@@ -274,8 +357,8 @@ export default function HistoryPage() {
                     placeholder="レシピのメモや髪の状態について…"
                   />
                 </div>
-                <button type="submit" className="archive-btn-primary">
-                  記録を追加
+                <button type="submit" className="archive-btn-primary" disabled={savingAdd}>
+                  {savingAdd ? "送信中…" : "記録を追加"}
                 </button>
               </form>
             </section>
@@ -292,16 +375,26 @@ export default function HistoryPage() {
               <button type="button" className="archive-btn-secondary" onClick={() => void copyShareUrl()}>
                 {copyOk ? "URLをコピーしました" : "スタイリストに共有"}
               </button>
+              {copyErr ? <p className="landing-copy-error">コピーできませんでした。URLを手動で共有してください。</p> : null}
             </section>
           </aside>
 
           <section className="archive-records" aria-labelledby="records-heading">
             <div className="archive-records-head">
               <h2 id="records-heading">過去の記録</h2>
-              <span className="archive-records-count">{list.length}件の記録が見つかりました</span>
+              <span className="archive-records-count">{recordsLoading ? "読み込み中…" : `${list.length}件の記録が見つかりました`}</span>
             </div>
 
-            {list.length === 0 ? (
+            {recordsLoading ? (
+              <p className="archive-records-loading">履歴を読み込んでいます…</p>
+            ) : recordsError ? (
+              <div className="archive-records-error">
+                <p>{recordsError}</p>
+                <button type="button" className="archive-records-retry" onClick={() => void load()}>
+                  再読み込み
+                </button>
+              </div>
+            ) : list.length === 0 ? (
               <p className="archive-empty">まだ記録がありません。左のフォームから追加してください。</p>
             ) : (
               <>
@@ -336,8 +429,8 @@ export default function HistoryPage() {
                             <button type="button" onClick={() => startEdit(h)}>
                               編集
                             </button>
-                            <button type="button" onClick={() => void remove(h.id)}>
-                              削除
+                            <button type="button" disabled={savingDeleteId !== null} onClick={() => void remove(h.id)}>
+                              {savingDeleteId === h.id ? "削除中…" : "削除"}
                             </button>
                           </div>
                         </>

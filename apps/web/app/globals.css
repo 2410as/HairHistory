@@ -158,6 +158,17 @@ body:has(.archive-shell) {
 .landing-btn--black:hover {
   opacity: 0.88;
 }
+.landing-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.landing-notice-banner {
+  margin: 0;
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
 .landing-btn--muted {
   background: #f0f0f0;
   color: #111;
@@ -959,6 +970,94 @@ ul { padding-left: 1.25rem; }
   color: #777;
   border: 1px dashed #e0e0e0;
   border-radius: 4px;
+}
+
+/* API エラー・通知（履歴・トップ共通） */
+.app-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #c62828;
+  border-radius: 4px;
+  background: #ffebee;
+  color: #b71c1c;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.app-notice[role="alert"] {
+  outline: none;
+}
+.app-notice__text {
+  flex: 1;
+  min-width: 0;
+}
+.app-notice__dismiss {
+  flex-shrink: 0;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #c62828;
+  border-radius: 4px;
+  background: #fff;
+  color: #b71c1c;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-right: 0;
+}
+.app-notice__dismiss:hover {
+  background: #fff5f5;
+}
+.archive-records-loading {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #666;
+}
+.archive-records-error {
+  padding: 1.25rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
+  text-align: center;
+}
+.archive-records-error p {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #c62828;
+  line-height: 1.5;
+}
+.archive-records-retry {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0;
+}
+.archive-records-retry:hover {
+  opacity: 0.9;
+}
+.archive-btn-primary:disabled,
+.archive-btn-secondary:disabled,
+.archive-record-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.landing-start-error {
+  margin-top: 1rem;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+.landing-copy-error {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #c62828;
 }
 
 .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }

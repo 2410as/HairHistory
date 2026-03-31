@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
+import { readApiErrorMessage, readFetchFailureMessage } from "../lib/apiError";
+
 const api = () => process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8080";
 const LS = "hairhistoryUserId";
 
@@ -19,17 +21,33 @@ function Svg({ cls, children }: { cls: string; children: ReactNode }) {
 export default function HomePage() {
   const router = useRouter();
   const [saved, setSaved] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   useEffect(() => setSaved(localStorage.getItem(LS)), []);
 
   async function start() {
-    const res = await fetch(`${api()}/api/users`, { method: "POST" });
-    if (!res.ok) return;
-    const j = (await res.json()) as { ent?: { id: string } };
-    const id = j.ent?.id;
-    if (!id) return;
-    localStorage.setItem(LS, id);
-    setSaved(id);
-    router.push(`/h/${id}`);
+    setStartError(null);
+    setStarting(true);
+    try {
+      const res = await fetch(`${api()}/api/users`, { method: "POST" });
+      if (!res.ok) {
+        setStartError(await readApiErrorMessage(res));
+        return;
+      }
+      const j = (await res.json()) as { ent?: { id: string } };
+      const id = j.ent?.id;
+      if (!id) {
+        setStartError("ユーザーIDを取得できませんでした。");
+        return;
+      }
+      localStorage.setItem(LS, id);
+      setSaved(id);
+      router.push(`/h/${id}`);
+    } catch (e) {
+      setStartError(readFetchFailureMessage(e));
+    } finally {
+      setStarting(false);
+    }
   }
 
   function goQR() {
@@ -39,6 +57,14 @@ export default function HomePage() {
 
   return (
     <div className="landing-shell">
+      {startError ? (
+        <div className="app-notice landing-notice-banner" role="alert">
+          <span className="app-notice__text">{startError}</span>
+          <button type="button" className="app-notice__dismiss" onClick={() => setStartError(null)}>
+            閉じる
+          </button>
+        </div>
+      ) : null}
       <header className="landing-header">
         <div className="landing-inner landing-header-inner">
           <Link href="/" className="landing-brand">
@@ -91,8 +117,8 @@ export default function HomePage() {
             過去の施術、ダメージの記憶。スマホに保存されたあなたの髪の履歴を、QRコード一つでプロの手に。
           </p>
           <div className="landing-hero-cta">
-            <button type="button" id="landing-start" className="landing-btn landing-btn--black" onClick={start}>
-              はじめる（IDを発行する）
+            <button type="button" id="landing-start" className="landing-btn landing-btn--black" onClick={start} disabled={starting}>
+              {starting ? "発行中…" : "はじめる（IDを発行する）"}
             </button>
             <a href="#features" className="landing-btn landing-btn--muted">
               使い方を見る
@@ -236,8 +262,8 @@ export default function HomePage() {
             <div className="landing-register-copy">
               <h3 className="landing-register-h">今すぐHairHistory IDを発行</h3>
               <p className="landing-register-p">登録は無料です。あなたの髪のカルテを今日から作り始めましょう。</p>
-              <button type="button" className="landing-btn landing-btn--black landing-btn--wide" onClick={start}>
-                REGISTER NOW
+              <button type="button" className="landing-btn landing-btn--black landing-btn--wide" onClick={start} disabled={starting}>
+                {starting ? "発行中…" : "REGISTER NOW"}
               </button>
             </div>
           </div>
