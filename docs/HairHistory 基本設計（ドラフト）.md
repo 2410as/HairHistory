@@ -134,6 +134,8 @@ ServiceTypeColor        ServiceType = "color"
 
 ServiceTypeBleach       ServiceType = "bleach"
 
+ServiceTypePerm         ServiceType = "perm" *// パーマ*
+
 ServiceTypeStraightPerm ServiceType = "straight_perm" *// 縮毛矯正*
 
 ServiceTypeTreatment    ServiceType = "treatment"

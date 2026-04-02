@@ -17,7 +17,7 @@ func (a Users) Create(w http.ResponseWriter, r *http.Request) {
 
 	res, err := a.userUsecase.Create(r.Context(), req)
 	if err != nil {
-		render.ErrorJSON(w, err.Error(), http.StatusInternalServerError)
+		render.ErrorFromUsecase(w, err)
 		return
 	}
 	render.JSONWithStatus(w, res, http.StatusCreated)

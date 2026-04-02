@@ -14,6 +14,7 @@ const VISIBLE_N = 5;
 const CATEGORIES: { code: string; label: string }[] = [
   { code: "color", label: "カラー" },
   { code: "bleach", label: "ブリーチ" },
+  { code: "perm", label: "パーマ" },
   { code: "straight_perm", label: "縮毛矯正" },
   { code: "other", label: "カット" },
   { code: "treatment", label: "オラプレックス" },
@@ -61,13 +62,13 @@ export default function HistoryPage() {
   const uid = typeof params.userId === "string" ? params.userId : params.userId?.[0] ?? "";
   const [list, setList] = useState<Row[]>([]);
   const [addDay, setAddDay] = useState(() => new Date().toISOString().slice(0, 10));
-  const [svc, setSvc] = useState("color");
+  const [svcs, setSvcs] = useState<string[]>(["color"]);
   const [salon, setSalon] = useState("");
   const [stylist, setStylist] = useState("");
   const [memo, setMemo] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [editDay, setEditDay] = useState("");
-  const [editSvc, setEditSvc] = useState("color");
+  const [editSvcs, setEditSvcs] = useState<string[]>(["color"]);
   const [editSalon, setEditSalon] = useState("");
   const [editStylist, setEditStylist] = useState("");
   const [editMemo, setEditMemo] = useState("");
@@ -138,7 +139,7 @@ export default function HistoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: dayToISO(addDay),
-          services: [svc],
+          services: svcs,
           salonName: salon,
           stylistName: stylist,
           memo,
@@ -151,6 +152,7 @@ export default function HistoryPage() {
       setMemo("");
       setSalon("");
       setStylist("");
+      setSvcs(["color"]);
       setAddDay(new Date().toISOString().slice(0, 10));
       await load({ showLoading: false });
     } catch (e) {
@@ -163,7 +165,7 @@ export default function HistoryPage() {
   function startEdit(h: Row) {
     setEditId(h.id);
     setEditDay(h.date.slice(0, 10));
-    setEditSvc(h.services[0] ?? "color");
+    setEditSvcs(h.services.length > 0 ? h.services : ["color"]);
     setEditSalon(h.salonName ?? "");
     setEditStylist(h.stylistName ?? "");
     setEditMemo(h.memo);
@@ -180,7 +182,7 @@ export default function HistoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: dayToISO(editDay),
-          services: [editSvc],
+          services: editSvcs,
           salonName: editSalon,
           stylistName: editStylist,
           memo: editMemo,
@@ -232,15 +234,23 @@ export default function HistoryPage() {
   const visibleList = showAll ? list : list.slice(0, VISIBLE_N);
   const hasMore = list.length > VISIBLE_N;
 
-  function chipRow(value: string, onChange: (c: string) => void) {
+  function toggleSelected(current: string[], code: string) {
+    if (current.includes(code)) {
+      if (current.length === 1) return current;
+      return current.filter((v) => v !== code);
+    }
+    return [...current, code];
+  }
+
+  function chipRow(values: string[], onToggle: (c: string) => void) {
     return (
       <div className="archive-chips" role="group" aria-label="カテゴリー">
         {CATEGORIES.map(({ code, label }) => (
           <button
             key={code}
             type="button"
-            className={`archive-chip${value === code ? " archive-chip--active" : ""}`}
-            onClick={() => onChange(code)}
+            className={`archive-chip${values.includes(code) ? " archive-chip--active" : ""}`}
+            onClick={() => onToggle(code)}
           >
             {label}
           </button>
@@ -260,7 +270,7 @@ export default function HistoryPage() {
         </div>
         <div className="archive-form-field">
           <span className="archive-form-label">カテゴリー</span>
-          {chipRow(editSvc, setEditSvc)}
+          {chipRow(editSvcs, (code) => setEditSvcs((prev) => toggleSelected(prev, code)))}
         </div>
         <div className="archive-form-row2">
           <input value={editSalon} onChange={(e) => setEditSalon(e.target.value)} placeholder="サロン名" aria-label="サロン名" />
@@ -282,7 +292,7 @@ export default function HistoryPage() {
           />
         </div>
         <div className="archive-record-actions">
-          <button type="submit" disabled={savingEdit}>
+          <button type="submit" disabled={savingEdit || editSvcs.length === 0}>
             {savingEdit ? "保存中…" : "保存"}
           </button>
           <button type="button" disabled={savingEdit} onClick={() => setEditId(null)}>
@@ -333,7 +343,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="archive-form-field">
                   <span className="archive-form-label">カテゴリー</span>
-                  {chipRow(svc, setSvc)}
+                  {chipRow(svcs, (code) => setSvcs((prev) => toggleSelected(prev, code)))}
                 </div>
                 <div className="archive-form-row2">
                   <input value={salon} onChange={(e) => setSalon(e.target.value)} placeholder="サロン名" aria-label="サロン名" />
@@ -357,7 +367,7 @@ export default function HistoryPage() {
                     placeholder="レシピのメモや髪の状態について…"
                   />
                 </div>
-                <button type="submit" className="archive-btn-primary" disabled={savingAdd}>
+                <button type="submit" className="archive-btn-primary" disabled={savingAdd || svcs.length === 0}>
                   {savingAdd ? "送信中…" : "記録を追加"}
                 </button>
               </form>
