@@ -292,7 +292,7 @@ export default function HistoryPage() {
           />
         </div>
         <div className="archive-record-actions">
-          <button type="submit" disabled={savingEdit}>
+          <button type="submit" disabled={savingEdit || editSvcs.length === 0}>
             {savingEdit ? "保存中…" : "保存"}
           </button>
           <button type="button" disabled={savingEdit} onClick={() => setEditId(null)}>
