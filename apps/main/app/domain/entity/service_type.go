@@ -12,6 +12,7 @@ type ServiceType string
 const (
 	ServiceTypeColor        ServiceType = "color"
 	ServiceTypeBleach       ServiceType = "bleach"
+	ServiceTypePerm         ServiceType = "perm"          // パーマ
 	ServiceTypeStraightPerm ServiceType = "straight_perm" // 縮毛矯正
 	ServiceTypeTreatment    ServiceType = "treatment"
 	ServiceTypeOther        ServiceType = "other"
@@ -20,7 +21,7 @@ const (
 // IsKnownServiceType reports whether s is a supported service code for API / DB.
 func IsKnownServiceType(s ServiceType) bool {
 	switch s {
-	case ServiceTypeColor, ServiceTypeBleach, ServiceTypeStraightPerm, ServiceTypeTreatment, ServiceTypeOther:
+	case ServiceTypeColor, ServiceTypeBleach, ServiceTypePerm, ServiceTypeStraightPerm, ServiceTypeTreatment, ServiceTypeOther:
 		return true
 	default:
 		return false

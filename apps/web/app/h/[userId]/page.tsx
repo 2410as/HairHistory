@@ -14,6 +14,7 @@ const VISIBLE_N = 5;
 const CATEGORIES: { code: string; label: string }[] = [
   { code: "color", label: "カラー" },
   { code: "bleach", label: "ブリーチ" },
+  { code: "perm", label: "パーマ" },
   { code: "straight_perm", label: "縮毛矯正" },
   { code: "other", label: "カット" },
   { code: "treatment", label: "オラプレックス" },

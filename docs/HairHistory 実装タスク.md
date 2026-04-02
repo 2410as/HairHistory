@@ -23,7 +23,7 @@
 
 ## 優先度中（その次）
 
-- パーマ要件と実装の整合（`ServiceType` の扱いを決定）
+- [x] パーマ要件と実装の整合（`ServiceType` の扱いを決定）
 - 施術の複数選択UI
 - ルート厳密化（将来衝突回避）
 - `usecase/request` の `*http.Request` 依存整理
