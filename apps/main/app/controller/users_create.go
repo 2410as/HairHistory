@@ -20,5 +20,5 @@ func (a Users) Create(w http.ResponseWriter, r *http.Request) {
 		render.ErrorJSON(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	render.JSON(w, res)
+	render.JSONWithStatus(w, res, http.StatusCreated)
 }
