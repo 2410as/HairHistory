@@ -23,6 +23,7 @@ import (
 
 // defaultDatabaseURL is used when DATABASE_URL is unset (local docker-compose Postgres).
 const defaultDatabaseURL = "postgres://postgres:postgres@127.0.0.1:5432/hairhistory?sslmode=disable"
+const uuidRoutePattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -79,7 +80,7 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			// users/{userId}/histories
-			r.Route("/users/{userId}", func(r chi.Router) {
+			r.Route("/users/{userId:"+uuidRoutePattern+"}", func(r chi.Router) {
 				r.Get("/histories", hairHistoryController.List)
 				r.Post("/histories", hairHistoryController.Create)
 			})
@@ -89,8 +90,8 @@ func main() {
 
 			// histories/{historyId}
 			r.Route("/histories", func(r chi.Router) {
-				r.Put("/{historyId}", hairHistoryController.Update)
-				r.Delete("/{historyId}", hairHistoryController.Delete)
+				r.Put("/{historyId:"+uuidRoutePattern+"}", hairHistoryController.Update)
+				r.Delete("/{historyId:"+uuidRoutePattern+"}", hairHistoryController.Delete)
 			})
 		})
 	})
