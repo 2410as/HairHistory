@@ -17,9 +17,9 @@
 
 ## 優先度高（次にやる）
 
-1. 作成系 API を `201 Created` にする
-2. 本番向けに 5xx エラー文言を固定化する
-3. `main.go` の起動方式を一本化（`signal.NotifyContext`）
+- [x] 作成系 API を `201 Created` にする
+- [x] 本番向けに 5xx エラー文言を固定化する
+- [x] `main.go` の起動方式を一本化（`signal.NotifyContext`）
 
 ## 優先度中（その次）
 
