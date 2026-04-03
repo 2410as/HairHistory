@@ -241,9 +241,9 @@ export default function HomePage() {
           <p className="landing-privacy-text">
             HairHistoryは、あなたのプライバシーを最優先に設計されています。記録されたデータは暗号化され、あなたがQRコードを提示した瞬間だけ、信頼できるプロフェッショナルと共有されます。
           </p>
-          <a className="landing-privacy-cta" href="#footer-legal">
+          <Link className="landing-privacy-cta" href="/privacy">
             PRIVACY POLICY
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -274,9 +274,8 @@ export default function HomePage() {
         <div className="landing-inner landing-footer-inner">
           <span className="landing-footer-brand">HAIRHISTORY</span>
           <nav className="landing-footer-nav" aria-label="フッター">
-            <a href="#privacy">PRIVACY</a>
-            <a href="#footer-legal">TERMS</a>
-            <a href="mailto:support@example.com">CONTACT</a>
+            <Link href="/privacy">PRIVACY</Link>
+            <Link href="/terms">TERMS</Link>
           </nav>
           <span className="landing-footer-copy">© 2026 HAIRHISTORY. ALL RIGHTS RESERVED.</span>
         </div>
