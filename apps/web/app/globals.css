@@ -5,7 +5,8 @@ body {
   max-width: 40rem;
 }
 body:has(.landing-shell),
-body:has(.archive-shell) {
+body:has(.archive-shell),
+body:has(.legal-page) {
   margin: 0;
   max-width: none;
 }
@@ -1061,3 +1062,49 @@ ul { padding-left: 1.25rem; }
 }
 
 .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-bottom: 0.4rem; }
+
+/* 法務ページ（静的） */
+.legal-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  color: #111;
+  line-height: 1.65;
+}
+.legal-page__back {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+}
+.legal-page__back a {
+  color: #333;
+  text-decoration: none;
+}
+.legal-page__back a:hover {
+  text-decoration: underline;
+}
+.legal-page__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.legal-page__meta {
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+.legal-page__body h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.legal-page__body p {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+.legal-page__body a {
+  color: #111;
+  text-decoration: underline;
+}

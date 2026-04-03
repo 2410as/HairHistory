@@ -27,7 +27,7 @@
 - [x] 施術の複数選択UI
 - [x] ルート厳密化（将来衝突回避）
 - [x] `usecase/request` の `*http.Request` 依存整理
-- CONTACT / PRIVACY / TERMS 実リンク化
+- [x] PRIVACY / TERMS 実リンク化（お問い合わせページは設けない）
 - `main.go` の CORS デフォルト設定に警告ログ追加（`HAIR_CORS_ORIGINS` 未設定時）
 - `uchi.NewRouter()` ラッパーの方針決定（維持するか、直接 `chi.NewRouter()` に戻すか）
 
