@@ -1,12 +1,8 @@
 package request
 
 import (
-	"encoding/json"
 	"errors"
-	"net/http"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/entity"
 )
@@ -21,22 +17,18 @@ type CreateHistory struct {
 }
 
 func (r *CreateHistory) Validate() error {
+	if r.UserID == "" {
+		return errors.New("invalid userId")
+	}
 	if r.Date.IsZero() {
 		return errors.New("date is required")
 	}
 	return entity.ValidateServices(r.Services)
 }
 
-func NewCreateHistory(httpReq *http.Request) (*CreateHistory, error) {
-	req := &CreateHistory{}
-	userID := chi.URLParam(httpReq, "userId")
-	if userID == "" {
-		return nil, errors.New("invalid userId")
-	}
-	req.UserID = userID
-
-	if err := json.NewDecoder(httpReq.Body).Decode(req); err != nil {
-		return nil, err
+func NewCreateHistory(req *CreateHistory) (*CreateHistory, error) {
+	if req == nil {
+		return nil, errors.New("request is required")
 	}
 	if err := req.Validate(); err != nil {
 		return nil, err
