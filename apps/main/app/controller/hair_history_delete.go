@@ -3,13 +3,15 @@ package controller
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/annasakai/hairhistorymemo/apps/main/app/controller/render"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase/request"
 )
 
 // Delete handles DELETE /api/histories/{historyId}
 func (a HairHistory) Delete(w http.ResponseWriter, r *http.Request) {
-	req, err := request.NewDeleteHistory(r)
+	req, err := request.NewDeleteHistory(chi.URLParam(r, "historyId"))
 	if err != nil {
 		render.ErrorJSON(w, err.Error(), http.StatusBadRequest)
 		return

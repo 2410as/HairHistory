@@ -1,18 +1,12 @@
 package request
 
-import (
-	"errors"
-	"net/http"
-
-	"github.com/go-chi/chi/v5"
-)
+import "errors"
 
 type DeleteHistory struct {
 	HistoryID string
 }
 
-func NewDeleteHistory(httpReq *http.Request) (*DeleteHistory, error) {
-	id := chi.URLParam(httpReq, "historyId")
+func NewDeleteHistory(id string) (*DeleteHistory, error) {
 	if id == "" {
 		return nil, errors.New("invalid historyId")
 	}

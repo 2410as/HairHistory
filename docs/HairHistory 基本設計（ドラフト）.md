@@ -341,7 +341,7 @@ HTTP リクエスト
 - **entity** … 永続化モデルと値オブジェクト（JSON タグは基本付けない。API 形は response が担当）
 - **domain** … 上記 Repository インターフェース
 - **domain/service** … ユースケースが呼ぶドメインサービス
-- **usecase/request** … `*http.Request` から入力を取り出し、構造体へ
+- **usecase/request** … HTTP 非依存の入力 DTO とバリデーション
 - **usecase/response** … JSON 用 DTO と `New…` コンストラクタ（例: `list` / `ent`）
 - **controller/render** … JSON 書き出し・エラー応答
 
@@ -358,7 +358,7 @@ HTTP リクエスト
 | PUT | `/api/histories/{historyId}` | 履歴更新 |
 | DELETE | `/api/histories/{historyId}` | 履歴削除 |
 
-`{userId}` / `{historyId}` は `usecase/request` で `chi.URLParam` により取得する。
+`{userId}` / `{historyId}` は `controller` で `chi.URLParam` により取得し、`usecase/request` DTO へ詰め替える。
 
 ### 5.3 ファイル分割の方針
 
