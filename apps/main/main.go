@@ -18,7 +18,6 @@ import (
 	"github.com/annasakai/hairhistorymemo/apps/main/app/domain/service/user"
 	appinfra "github.com/annasakai/hairhistorymemo/apps/main/app/infra"
 	"github.com/annasakai/hairhistorymemo/apps/main/app/usecase"
-	"github.com/annasakai/hairhistorymemo/apps/main/app/utility/uchi"
 )
 
 // defaultDatabaseURL is used when DATABASE_URL is unset (local docker-compose Postgres).
@@ -65,7 +64,7 @@ func main() {
 	hairHistoryController := controller.NewHairHistory(hairHistoryUsecase)
 
 	// --- HTTP router ---
-	r := uchi.NewRouter()
+	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsAllowedOrigins(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
