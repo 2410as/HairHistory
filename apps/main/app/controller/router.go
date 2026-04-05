@@ -2,8 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -12,7 +10,7 @@ import (
 func NewRouter(deps Deps) http.Handler {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   corsAllowedOrigins(),
+		AllowedOrigins:   ResolveCORSOrigins(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		AllowCredentials: false,
@@ -24,22 +22,4 @@ func NewRouter(deps Deps) http.Handler {
 		registerHairHistoryRoutes(r, deps)
 	})
 	return r
-}
-
-func corsAllowedOrigins() []string {
-	raw := strings.TrimSpace(os.Getenv("HAIR_CORS_ORIGINS"))
-	if raw == "" {
-		return []string{"http://localhost:3000"}
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if t := strings.TrimSpace(p); t != "" {
-			out = append(out, t)
-		}
-	}
-	if len(out) == 0 {
-		return []string{"http://localhost:3000"}
-	}
-	return out
 }

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -66,7 +65,7 @@ func main() {
 	// --- HTTP router ---
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   corsAllowedOrigins(),
+		AllowedOrigins:   controller.ResolveCORSOrigins(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		AllowCredentials: false,
@@ -119,22 +118,4 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("server shutdown: %v", err)
 	}
-}
-
-func corsAllowedOrigins() []string {
-	raw := strings.TrimSpace(os.Getenv("HAIR_CORS_ORIGINS"))
-	if raw == "" {
-		return []string{"http://localhost:3000"}
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, p := range parts {
-		if t := strings.TrimSpace(p); t != "" {
-			out = append(out, t)
-		}
-	}
-	if len(out) == 0 {
-		return []string{"http://localhost:3000"}
-	}
-	return out
 }
