@@ -28,8 +28,36 @@
 - [x] ルート厳密化（将来衝突回避）
 - [x] `usecase/request` の `*http.Request` 依存整理
 - [x] PRIVACY / TERMS 実リンク化（お問い合わせページは設けない）
-- `main.go` の CORS デフォルト設定に警告ログ追加（`HAIR_CORS_ORIGINS` 未設定時）
 - [x] ルータ初期化は `chi.NewRouter()` に統一（`uchi` ラッパー削除）
+- `main.go` の CORS デフォルト設定に警告ログ追加（`HAIR_CORS_ORIGINS` 未設定時）
+
+## レビューメモ（記録のみ・依頼時点ではコード対応なし）
+
+### LGTM
+
+- `apps/main/app/controller/*.go` — レイヤー責務の分離として良い変更
+- `apps/main/app/usecase/request/*.go` — 純粋な DTO + バリデーションになりテスタビリティ向上
+- `uchi.go` 削除 — 薄いラッパーの削除は妥当
+- `apps/web/app/privacy/page.tsx`, `apps/web/app/terms/page.tsx` — Metadata 付き静的ページとして適切
+- `docs/` — コード変更と CI の `npm install --no-audit --no-fund` / `npm run build` の記述が整合
+
+### nits
+
+- `.github/workflows/ci.yml` — ファイル末尾改行なしの指摘あり（@ko-tarou / POSIX）。**対応済み**（末尾 newline を追加）
+- `cache: npm` は `package-lock.json` の存在を前提とする。現状リポジトリ直下に `package-lock.json` あり（確認済み）
+- `hair_history_create.go`（controller）— `Decode` 失敗時はエラー文字列がそのままクライアントに返る。種別区別はないが現段階では 400 で十分。将来メッセージをラップするか検討してよい。
+- `apps/web/app/page.tsx` — CONTACT リンク削除はタスクドキュメントと整合しており問題なし
+- `privacy/page.tsx`（および同様の法務ページ）— 「最終更新」日付がハードコード。運用で更新忘れに注意。現段階では許容範囲。
+
+### Q（未決・記録）
+
+- `users_create.go`（controller）— `request.NewCreateUser()` が常に `nil` error を返す。将来バリデーション追加予定か。不要なら `error` を外してシンプルにする選択肢もある（@ko-tarou）。**答え（記録）**: 将来拡張を見越して `error` を残す意図であれば一貫してよい。
+
+### その他（過去レビューからのメモ）
+
+- `CreateHistory` で URL から `UserID` をセット後に `Decode(in)` するが、body の `UserID` 相当キーで上書きされないか — **`UserID` は `json:"-"` のため JSON からは設定されない**（`UpdateHistory.HistoryID` も同様）。別名キーで別フィールドにマップされるタグがない限り問題なし。
+
+---
 
 ## 拡張（任意）
 
