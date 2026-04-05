@@ -48,7 +48,7 @@ go run .
 
 | 変数 | 説明 |
 |------|------|
-| `HAIR_CORS_ORIGINS` | カンマ区切りのオリジン。未設定時は `http://localhost:3000` のみ許可（Next.js ローカル用）。 |
+| `HAIR_CORS_ORIGINS` | カンマ区切りのオリジン。未設定時は `http://localhost:3000` のみ許可（Next.js ローカル用）。その場合は起動時に標準ログへ警告が 1 行出る（本番では明示設定推奨）。値はあるが有効なオリジンが 1 つもない場合も同様にデフォルトへフォールバックし警告する。 |
 | `HAIR_HEALTH_PING_TIMEOUT` | ヘルスチェックの DB `Ping` 期限（`time.ParseDuration` 形式、例: `2s`）。未設定・不正時は `2s`。 |
 
 `GET /api/health` は DB プールに `Ping` する。Postgres に届かない場合は **503**（`{ "error": "database unavailable" }`）。

@@ -29,7 +29,7 @@
 - [x] `usecase/request` の `*http.Request` 依存整理
 - [x] PRIVACY / TERMS 実リンク化（お問い合わせページは設けない）
 - [x] ルータ初期化は `chi.NewRouter()` に統一（`uchi` ラッパー削除）
-- `main.go` の CORS デフォルト設定に警告ログ追加（`HAIR_CORS_ORIGINS` 未設定時）
+- [x] CORS デフォルト時の警告ログ（`HAIR_CORS_ORIGINS` 未設定、またはパース後に有効オリジンなし）— `controller.ResolveCORSOrigins`
 
 ## レビューメモ（記録のみ・依頼時点ではコード対応なし）
 
