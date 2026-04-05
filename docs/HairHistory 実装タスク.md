@@ -33,12 +33,31 @@
 
 ## レビューメモ（記録のみ・依頼時点ではコード対応なし）
 
-- **[nits]** `controller/hair_history_create.go` の `json.NewDecoder(r.Body).Decode(in)` 失敗時、エラー文字列がそのままクライアントに返る。既存挙動と同じで今回は OK。将来、クライアント向けにメッセージをラップするか検討してよい。
-- **[Q]** `CreateHistory` で URL から `UserID` をセットしたあと `Decode(in)` するが、body に `UserID` 相当の JSON キーがあれば上書きされないか。**struct タグ**: `UserID` は `json:"-"` のため **JSON からは設定されず上書きされない**（`UpdateHistory.HistoryID` も `json:"-"` で同様）。別名キーで別フィールドにマップされるタグが付いていない限り問題なし。
-- **[nits]** `usecase/request` の `NewCreateUser()` は現状常に `nil` error を返す。将来バリデーションを足す前提なら問題なし。
-- **[Q]** `NewCreateUser()` が引数なしでエラーも常に `nil` だが、戻り値に `error` を残しているのは将来拡張（バリデーション等）を見越してか。**答え（記録）**: その意図であれば一貫してよい。不要ならシグネチャ簡略化も検討の余地あり。
-- **[nits]** `privacy/page.tsx`（および同様の法務ページ）の「最終更新」日付がハードコード。運用で更新忘れにだけ注意。現段階では許容範囲。
-- **[nits]** `page.tsx` フッターから CONTACT リンクは削除済み。意図的と理解。将来的に何らかの連絡手段を置くかは別途検討してよい。
+### LGTM
+
+- `apps/main/app/controller/*.go` — レイヤー責務の分離として良い変更
+- `apps/main/app/usecase/request/*.go` — 純粋な DTO + バリデーションになりテスタビリティ向上
+- `uchi.go` 削除 — 薄いラッパーの削除は妥当
+- `apps/web/app/privacy/page.tsx`, `apps/web/app/terms/page.tsx` — Metadata 付き静的ページとして適切
+- `docs/` — コード変更と CI の `npm install --no-audit --no-fund` / `npm run build` の記述が整合
+
+### nits
+
+- `.github/workflows/ci.yml` — ファイル末尾改行なしの指摘あり（@ko-tarou / POSIX）。**対応済み**（末尾 newline を追加）
+- `cache: npm` は `package-lock.json` の存在を前提とする。現状リポジトリ直下に `package-lock.json` あり（確認済み）
+- `hair_history_create.go`（controller）— `Decode` 失敗時はエラー文字列がそのままクライアントに返る。種別区別はないが現段階では 400 で十分。将来メッセージをラップするか検討してよい。
+- `apps/web/app/page.tsx` — CONTACT リンク削除はタスクドキュメントと整合しており問題なし
+- `privacy/page.tsx`（および同様の法務ページ）— 「最終更新」日付がハードコード。運用で更新忘れに注意。現段階では許容範囲。
+
+### Q（未決・記録）
+
+- `users_create.go`（controller）— `request.NewCreateUser()` が常に `nil` error を返す。将来バリデーション追加予定か。不要なら `error` を外してシンプルにする選択肢もある（@ko-tarou）。**答え（記録）**: 将来拡張を見越して `error` を残す意図であれば一貫してよい。
+
+### その他（過去レビューからのメモ）
+
+- `CreateHistory` で URL から `UserID` をセット後に `Decode(in)` するが、body の `UserID` 相当キーで上書きされないか — **`UserID` は `json:"-"` のため JSON からは設定されない**（`UpdateHistory.HistoryID` も同様）。別名キーで別フィールドにマップされるタグがない限り問題なし。
+
+---
 
 ## 拡張（任意）
 
