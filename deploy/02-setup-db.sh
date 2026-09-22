@@ -43,13 +43,20 @@ if [[ "${role_exists}" == "1" ]]; then
   log "Role ${DB_USER} exists; updating its password only"
 else
   log "Creating role ${DB_USER}"
-  psql_as_postgres -c "CREATE ROLE ${DB_USER} LOGIN"
+  psql_as_postgres -v role="${DB_USER}" <<'SQL'
+CREATE ROLE :"role" LOGIN;
+SQL
 fi
 
-# ALTER ROLE ... PASSWORD is passed as a bound parameter so the password never
-# reaches the shell history or the postgres log line.
-psql_as_postgres -c "ALTER ROLE ${DB_USER} WITH LOGIN PASSWORD :'pw'" \
-  -v "pw=${DB_PASSWORD}"
+# psql substitutes :'pw' / :"role" only in input read from a file or from
+# stdin; with -c the text is handed to the server verbatim, so :'pw' would
+# reach PostgreSQL as a syntax error. Hence the here-document below.
+# Quoting is done by psql itself, so a password containing ' or \ is safe and
+# the password never becomes part of the SQL text we build in the shell.
+log "Setting the password for ${DB_USER}"
+psql_as_postgres -v role="${DB_USER}" -v pw="${DB_PASSWORD}" <<'SQL'
+ALTER ROLE :"role" WITH LOGIN PASSWORD :'pw';
+SQL
 
 db_exists="$(psql_as_postgres -tAc \
   "SELECT 1 FROM pg_database WHERE datname = '${DB_NAME}'")"
@@ -58,7 +65,9 @@ if [[ "${db_exists}" == "1" ]]; then
   log "Database ${DB_NAME} already exists; leaving it untouched"
 else
   log "Creating database ${DB_NAME} owned by ${DB_USER}"
-  psql_as_postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER}"
+  psql_as_postgres -v db="${DB_NAME}" -v role="${DB_USER}" <<'SQL'
+CREATE DATABASE :"db" OWNER :"role";
+SQL
 fi
 
 log "Verifying a localhost login works"
