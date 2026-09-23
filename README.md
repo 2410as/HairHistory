@@ -1,161 +1,190 @@
-# HairHistory - 美容施術履歴共有アプリ
+# HairHistory
 
-## プロジェクト概要
+美容院での施術内容を記録し、次に行くお店に共有リンクや QR コードで見せられる Web アプリケーションです。
+Go 製の API サーバーと React の SPA を分離して実装し、AWS EC2 上に自前で構築したサーバーで動かしています。
 
-HairHistory は、美容師とお客さんが髪の施術履歴を簡単に共有できるアプリケーションです。お客さんが初来店時に実施した施術内容を記録・保存し、次回来店時にその履歴を確認することで、より質の高い施術を実現します。
+## 解決したい課題
 
-### ペルソナ
+美容院で「前回どんな施術をしたか」を思い出せず、うまく伝えられないことがあります。
 
-- **美容師**: 髪施術の履歴を記録・管理したい、過去の施術内容を素早く確認したい
-- **お客さん**: 施術の履歴を記録として残したい、次回の美容院での説明を簡潔にしたい、複数の美容院での施術履歴を一括管理したい
+- カラー剤やパーマの内容は施術直後でないと覚えていられない
+- 複数の美容院を使い分けていると、履歴がどこにもまとまらない
+- 口頭やスマホのメモでの説明は、美容師側に正確に伝わりにくい
 
-### 問題・課題
+HairHistory は施術履歴を 1 か所に貯め、**閲覧専用のリンク 1 本**にまとめて美容師に渡せるようにします。
+リンクには氏名・メールアドレスなどの個人情報を含めず、施術内容だけを見せます。
 
-- 施術履歴が紙に記録され、紛失・汚損のリスクがある
-- 美容師が過去の施術内容を正確に把握できない
-- お客さんが複数の美容院での施術履歴を一括管理できない
-- 施術情報の共有が煩雑（メモ・メール・LINE などで個別対応）
+## 主な機能
 
-### 解決案
-
-- **デジタル化**: 施術履歴をクラウドに保存し、紛失・汚損を防止
-- **即座の確認**: 美容師とお客さんが共有リンクやQRコードで施術履歴にアクセス
-- **一元管理**: 複数の美容院での施術情報を一つのアプリで管理
-- **効率化**: Google OAuth による簡単ログイン、有効期限付き共有リンク
-
-## 必須機能
-
-- **Google OAuthログイン**: Google アカウントで簡単にログイン
-- **施術履歴登録・編集・削除**: 施術日、施術内容、使用カラー、ケア方法などを登録・編集・削除
-- **施術履歴一覧表示**: ユーザーが登録した施術履歴を時系列で表示
-- **共有リンク生成**: 施術履歴を共有リンクで共有し、有効期限を設定可能
-- **QRコード生成**: 有効期限5分のQRコードを生成し、その場で施術情報を共有
-
-## API 設計
-
-### ユーザー認証 API
-
-```
-POST /api/auth/login
-- 説明: Google OAuth ログイン
-- 入力: Google ID Token
-- 出力: セッショントークン、ユーザー情報
-
-POST /api/auth/logout
-- 説明: ログアウト
-- 入力: セッショントークン
-- 出力: なし
-```
-
-### 施術履歴 API
-
-```
-GET /api/treatments
-- 説明: 全施術履歴一覧
-- 入力: セッショントークン
-- 出力: 施術履歴リスト
-
-POST /api/treatments
-- 説明: 施術履歴新規登録
-- 入力: セッショントークン、施術内容（施術日、内容、カラー、ケア方法など）
-- 出力: 登録された施術履歴
-
-GET /api/treatments/:id
-- 説明: 特定の施術履歴を取得
-- 入力: セッショントークン、施術ID
-- 出力: 施術履歴詳細
-
-PUT /api/treatments/:id
-- 説明: 施術履歴編集
-- 入力: セッショントークン、施術ID、編集内容
-- 出力: 編集後の施術履歴
-
-DELETE /api/treatments/:id
-- 説明: 施術履歴削除
-- 入力: セッショントークン、施術ID
-- 出力: なし
-```
-
-### 共有リンク API
-
-```
-POST /api/share/generate-link
-- 説明: 共有リンク生成
-- 入力: セッショントークン、施術ID、有効期限
-- 出力: 共有リンク（トークン）
-
-GET /api/share/:token
-- 説明: 共有リンクで施術履歴にアクセス
-- 入力: 共有リンクトークン
-- 出力: 施術履歴（共有リンク所有者以外は名前非表示など制限あり）
-
-DELETE /api/share/:token
-- 説明: 共有リンク削除（無効化）
-- 入力: セッショントークン、共有リンクトークン
-- 出力: なし
-```
-
-### QRコード API
-
-```
-POST /api/qrcode/generate
-- 説明: QRコード生成（有効期限5分）
-- 入力: セッショントークン、施術ID
-- 出力: QRコード画像（PNG形式）、QRコードに含まれるトークン
-```
-
-## あったら嬉しい機能
-
-- **写真添付**: 施術前・施術後の写真を添付可能
-- **検索機能**: 施術日、カラー、内容などで施術履歴を検索
-- **施術からの経過日数通知**: 前回の施術からの経過日数を自動計算・通知
-- **評価・レビュー**: 美容師の評価をつけられる
-- **複数デバイス対応**: iOS・Android アプリ化
-- **オフライン対応**: インターネット接続がない環境での動作
+| 機能 | 内容 |
+| --- | --- |
+| 施術履歴の記録 | 施術日・施術項目・サロン名・メモ・金額を登録 / 一覧 / 編集 / 削除 |
+| 共有リンクの発行 | 有効期限付きのトークンを発行。一覧表示と任意のタイミングでの無効化が可能 |
+| 公開閲覧 | 発行されたリンクはログイン不要で閲覧できる。個人情報は返さない |
+| QR コード生成 | 共有リンクの QR コードをブラウザ側で生成し、その場で見せられる |
+| Google ログイン | Google ID Token を検証してセッション Cookie を発行（下記「未実装」も参照） |
 
 ## 技術スタック
 
-### フロントエンド
-**Vite + React (SPA) + TypeScript**
-- 理由：サーバーサイドレンダリング（SSR）を不要とし、純粋な SPA（Single Page Application）として構築。バックエンド（API）との責務を完全に分離。Next.js の多機能さに頼らず、フロント・バックの通信基礎を学ぶ。
-- UI ライブラリ：Chakra UI（セットアップ 5 分、初心者向け）
+| 層 | 採用技術 |
+| --- | --- |
+| フロントエンド | Vite + React 19 + TypeScript（SPA）、Chakra UI、React Router、axios、qrcode.react |
+| バックエンド | Go 1.25 + chi、pgx/v5、golang-migrate、`google.golang.org/api/idtoken` |
+| データベース | PostgreSQL 16（ORM を使わず生 SQL） |
+| インフラ | AWS EC2（Ubuntu）1 台構成、Nginx リバースプロキシ、systemd |
+| 開発環境 | Docker Compose（PostgreSQL）、Makefile |
 
-### バックエンド
-**Go + chi**
-- 理由：シングルバイナリで軽量・高速に動作。将来的なインフラ拡張（コンテナ化・サーバーレス）と相性良好。`chi` でルーティングし、Go の標準ライブラリ（`net/http`）に忠実。HTTP 基礎を深く学ぶ。
+### なぜこの構成にしたか
 
-### データベース
-**PostgreSQL（SQL ベース操作）**
-- 理由：JSON 型・拡張性に優れ、モダン Web 開発のデファクトスタンダード。高度な ORM に依存せず、生 SQL（または `sqlc` など）で、RDBMS 基礎設計能力を養う。
+**SSR を使わず SPA にした**
+Next.js のようなフルスタックフレームワークを使うと、フロントとバックの境界が曖昧になります。
+API を独立した Go サーバーに切り出し、フロントは HTTP でそれを叩くだけにすることで、
+認証・CORS・Cookie といった通信の基礎を自分で組み立てる構成にしました。
 
-### インフラ・デプロイメント
-**AWS（EC2 等 IaaS 構成）**
-- 理由：フルマネージドサービス（Vercel・Cloud Run）のブラックボックス化を避け、自身で Linux サーバー構築、ネットワーク（VPC・セキュリティグループ）、ミドルウェア設定をゼロから経験。バックエンドエンジニアとしてのインフラ構築力を証明するポートフォリオ。
+**ORM を使わず生 SQL にした**
+発行される SQL が読めない状態を避けるためです。
+クエリは `internal/*/repository.go` にすべて直書きし、値は必ずプレースホルダ（`$1`）でバインドしています。
+インデックス設計や `ON DELETE CASCADE` の効き方を、自分で確認しながら決められます。
 
-### CI/CD
-- GitHub Actions（テスト自動化、ビルド）
-- Docker（コンテナ化）
+**マネージドサービスではなく IaaS にした**
+Vercel や Cloud Run であれば数分で公開できますが、その裏側がブラックボックスになります。
+EC2 に OS から入って PostgreSQL・Nginx・systemd を自分で設定することで、
+ビルド成果物の配置、リバースプロキシ、プロセスの常駐化までを一通り経験する構成にしました。
+
+## アーキテクチャ
+
+バックエンドは **handler → usecase → repository** のレイヤード構成です。
+ドメイン（`auth` / `treatment` / `share`）ごとにパッケージを分け、横断的な処理は `httpx` に集約しています。
+
+```
+HTTP リクエスト
+   │
+   ├─ httpx: リクエスト ID / ログ / パニック復帰 / CORS
+   │
+   ▼
+handler    … JSON のデコード、HTTP ステータスへの変換
+   ▼
+usecase    … 業務ルール（バリデーション、所有者チェック、有効期限判定）
+   ▼
+repository … SQL の実行。interface として usecase に注入される
+   ▼
+PostgreSQL
+```
+
+`usecase` は具体的な DB 実装ではなく `repository` の interface に依存しているため、
+テストではインメモリのフェイクに差し替えられます（`internal/*/usecase_test.go`）。
+
+セッションは `hh_session` という HttpOnly Cookie で保持し、DB には生のトークンではなく
+SHA-256 ハッシュ（`sessions.token_hash`）を保存しています。
+
+## ディレクトリ構成
+
+```
+HairHistory/
+├── backend/
+│   ├── cmd/api/main.go              # 依存の組み立てとサーバー起動
+│   ├── internal/
+│   │   ├── auth/                    # Google ID Token 検証、セッション管理
+│   │   ├── treatment/               # 施術履歴の CRUD とバリデーション
+│   │   ├── share/                   # 共有リンクの発行・無効化・公開参照
+│   │   ├── httpx/                   # ミドルウェア、エラー整形、レスポンス
+│   │   ├── config/                  # 環境変数の読み込みと検証
+│   │   └── db/                      # pgxpool の接続
+│   ├── migrations/                  # golang-migrate 用の SQL
+│   ├── go.mod
+│   └── go.sum
+├── frontend/
+│   ├── src/
+│   │   ├── pages/                   # Home / Login / Dashboard / TreatmentList /
+│   │   │                            #   TreatmentDetail / ShareLink / PublicShare / NotFound
+│   │   ├── components/              # Layout, Navbar, TreatmentCard, ProtectedRoute ほか
+│   │   ├── contexts/AuthContext.tsx # ログイン状態の保持
+│   │   ├── hooks/                   # useTreatments, useShares
+│   │   ├── lib/apiClient.ts         # axios インスタンス（Cookie 送信）
+│   │   ├── types/                   # API のレスポンス型
+│   │   ├── theme.ts / design.ts     # Chakra UI のテーマとデザイントークン
+│   │   ├── App.tsx                  # ルーティング
+│   │   └── main.tsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── deploy/                          # EC2 セットアップ〜デプロイのスクリプト一式
+│   ├── 01-setup-server.sh
+│   ├── 02-setup-db.sh
+│   ├── 03-deploy-app.sh
+│   ├── hairhistory-api.service
+│   ├── nginx-hairhistory.conf
+│   └── README.md
+├── docs/
+│   ├── API.md
+│   └── DATABASE.md
+├── docker-compose.yml               # ローカル開発用の PostgreSQL 16
+├── Makefile
+└── README.md
+```
+
+## 画面とルーティング
+
+| パス | 内容 | 認証 |
+| --- | --- | --- |
+| `/` | トップページ | 不要 |
+| `/login` | ログイン | 不要 |
+| `/dashboard` | ダッシュボード | 必要 |
+| `/treatments` | 施術履歴の一覧 | 必要 |
+| `/treatment/:id` | 施術履歴の詳細・編集・削除 | 必要 |
+| `/share` | 共有リンクの発行・QR コード表示・無効化 | 必要 |
+| `/share/:token` | 共有された履歴の公開閲覧 | 不要 |
 
 ## ローカルセットアップ
 
-（後に追加予定）
+### 前提ツール
 
-### 前提条件
+- Go 1.25 以上
+- Node.js 20 以上
+- Docker（PostgreSQL の起動に使用）
+- [golang-migrate](https://github.com/golang-migrate/migrate) の CLI（`migrate` コマンド）
 
-- Go 1.20 以上
-- Node.js 18 以上
-- PostgreSQL 14 以上
-- Google OAuth クライアント ID・シークレット
-
-### Backend セットアップ
+### 1. データベースを起動する
 
 ```bash
-cd backend
-go mod download
-go run main.go
+make db-up
 ```
 
-### Frontend セットアップ
+`docker compose` で PostgreSQL 16 を立ち上げ、接続可能になるまで待ちます。
+
+**ポート 5432 が別の PostgreSQL で埋まっている場合**は、`POSTGRES_PORT` で変更できます。
+`docker-compose.yml` と `Makefile` の `DATABASE_URL` の両方がこの値を参照します。
+
+```bash
+POSTGRES_PORT=5433 make db-up
+POSTGRES_PORT=5433 make migrate-up
+```
+
+### 2. マイグレーションを適用する
+
+```bash
+make migrate-up
+```
+
+`users` / `treatments` / `share_links` / `sessions` の 4 テーブルが作られます。
+スキーマの詳細は [`docs/DATABASE.md`](docs/DATABASE.md) を参照してください。
+
+### 3. バックエンドを起動する
+
+`backend/.env.example` を参考に環境変数を設定してから起動します。
+
+```bash
+APP_ENV=development \
+DATABASE_URL='postgres://hairhistory:hairhistory@localhost:5432/hairhistory?sslmode=disable' \
+make run
+```
+
+`http://localhost:8080/healthz` が `{"status":"ok"}` を返せば起動しています。
+
+`APP_ENV=development` のときだけ `POST /api/auth/dev-login` が有効になり、
+Google のクライアント ID なしでログインの動作確認ができます（本番では 404 になります）。
+
+### 4. フロントエンドを起動する
 
 ```bash
 cd frontend
@@ -163,72 +192,106 @@ npm install
 npm run dev
 ```
 
-## ディレクトリ構成
+`http://localhost:5173` で開きます。API のベース URL は `VITE_API_BASE_URL` で切り替えられ、
+未設定なら `http://localhost:8080` を使います。
+
+## 環境変数
+
+### バックエンド（`backend/.env.example`）
+
+| 変数 | 必須 | 既定値 | 説明 |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | ○ | — | PostgreSQL の接続 URL。未設定だと起動時にエラーで停止する |
+| `APP_ENV` | — | `development` | `development` または `production`。それ以外の値はエラー。`production` のとき Cookie に `Secure` が付き、開発用ログインが無効になる |
+| `PORT` | — | `8080` | API サーバーの待ち受けポート |
+| `GOOGLE_CLIENT_ID` | △ | 空 | Google ID Token の検証に使う。`APP_ENV=production` では必須 |
+| `CORS_ALLOWED_ORIGINS` | — | `http://localhost:5173` | 許可するオリジンをカンマ区切りで指定。Cookie を送るため `*` は指定できない |
+| `SESSION_TTL_HOURS` | — | `720` | セッションの有効時間（時間単位）。正の整数のみ |
+
+### フロントエンド（`frontend/.env.example`）
+
+| 変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | `http://localhost:8080` | API のベース URL |
+| `VITE_GOOGLE_CLIENT_ID` | 空 | Google ログインボタンに渡すクライアント ID。空だとボタンは無効のまま |
+
+Vite の環境変数はビルド時に埋め込まれるため、値を変えたら再ビルドが必要です。
+
+## API
+
+詳細なリクエスト / レスポンス例、バリデーションルール、エラーコードは
+[`docs/API.md`](docs/API.md) にまとめています。
+
+| メソッド | パス | 認証 | 内容 |
+| --- | --- | --- | --- |
+| `GET` | `/healthz` | — | ヘルスチェック |
+| `POST` | `/api/auth/google` | — | Google ID Token でログイン。`hh_session` Cookie を発行 |
+| `POST` | `/api/auth/dev-login` | — | 開発用ログイン（`APP_ENV=development` のときのみ） |
+| `GET` | `/api/auth/me` | ○ | ログイン中のユーザー情報 |
+| `POST` | `/api/auth/logout` | — | セッションを削除し Cookie を失効させる |
+| `GET` | `/api/treatments` | ○ | 施術履歴の一覧（施術日の降順） |
+| `POST` | `/api/treatments` | ○ | 施術履歴の登録 |
+| `GET` | `/api/treatments/{id}` | ○ | 施術履歴の取得 |
+| `PUT` | `/api/treatments/{id}` | ○ | 施術履歴の更新（全項目置換） |
+| `DELETE` | `/api/treatments/{id}` | ○ | 施術履歴の削除 |
+| `POST` | `/api/shares` | ○ | 共有リンクの発行（`expiresInHours` は 1〜8760、既定 168） |
+| `GET` | `/api/shares` | ○ | 有効な共有リンクの一覧 |
+| `DELETE` | `/api/shares/{token}` | ○ | 共有リンクの無効化 |
+| `GET` | `/api/public/shares/{token}` | — | 共有された施術履歴の公開参照。個人情報は返さない |
+
+JSON はすべて camelCase、エラーは `{"error": {"code", "message", "details"}}` の形に統一しています。
+
+## テスト
+
+```bash
+make test        # backend で go test ./...
+```
+
+`auth` / `treatment` / `share` の usecase 層に、テーブルドリブンのユニットテストがあります。
+repository を interface として注入しているため、DB を起動せずに実行できます。
+
+その他のコマンド:
+
+```bash
+make lint        # gofmt と go vet
+make build       # go build ./...
+make help        # 全ターゲットの一覧
+```
+
+フロントエンドは `npm run build`（`tsc -b` を含む）と `npm run lint`（oxlint）で確認します。
+
+## デプロイ
+
+AWS EC2（Ubuntu）1 台の中に、Go API・PostgreSQL 16・Nginx をすべて配置する構成です。
 
 ```
-HairHistory/
-├── backend/
-│   ├── cmd/
-│   │   └── main.go
-│   ├── internal/
-│   │   ├── auth/
-│   │   ├── treatment/
-│   │   ├── share/
-│   │   └── db/
-│   ├── go.mod
-│   ├── go.sum
-│   └── Dockerfile
-├── frontend/
-│   ├── app/
-│   │   ├── page.tsx
-│   │   ├── layout.tsx
-│   │   └── ...
-│   ├── components/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── next.config.js
-│   └── Dockerfile
-├── docs/
-│   ├── API.md
-│   ├── DATABASE.md
-│   └── SETUP.md
-├── .github/
-│   └── workflows/
-│       ├── backend-test.yml
-│       └── frontend-test.yml
-├── docker-compose.yml
-├── .gitignore
-└── README.md
+ブラウザ ──80──▶ Nginx ──┬── /      → /var/www/hairhistory（React のビルド成果物）
+                          └── /api/  → 127.0.0.1:8080（Go API / systemd）
+                                            │
+                                            └── 127.0.0.1:5432 PostgreSQL 16
 ```
 
-## 開発ロードマップ
+PostgreSQL と API のポートは外部に公開せず、必ず Nginx を経由させます。
+サーバーの初期セットアップからデプロイ、ロールバック、トラブルシュートまでの手順は
+[`deploy/README.md`](deploy/README.md) にまとめています。
 
-### Phase 1: MVP（最小機能セット）
-- [ ] Google OAuth ログイン
-- [ ] 施術履歴の登録・編集・削除
-- [ ] 施術履歴の一覧表示
-- [ ] 共有リンク生成（有効期限付き）
-- [ ] QRコード生成（有効期限5分）
+## 今後の課題・未実装
 
-### Phase 2: UX 改善
-- [ ] 写真添付機能
-- [ ] 検索機能
-- [ ] 経過日数通知
+正直なところ、以下はまだ動いていません。
 
-### Phase 3: スケーリング
-- [ ] モバイルアプリ化（React Native）
-- [ ] オフライン対応
-- [ ] キャッシング・パフォーマンス最適化
+- **本番の Google ログインが未接続**。Google OAuth のクライアント ID をまだ取得していないため、
+  ログインボタンは無効状態です。動作確認は開発用ログイン（`POST /api/auth/dev-login`）で代替しています
+- **HTTPS 未対応**。現状は HTTP のみで、セッション Cookie が平文で流れます。
+  ドメインを用意して `certbot` で TLS を有効化するまでは本番利用できません
+- **施術項目の複数選択 UI が未実装**。API と DB（`text[]`）は複数項目に対応済みですが、
+  画面からは 1 項目しか送っていません
+- **CI 未整備**。`.github/workflows/` が空で、テストとビルドは手元で実行しています
+- **共有リンクの有効期限が固定**。API は 1〜8760 時間を受け付けますが、
+  フロントからは 168 時間（7 日）を決め打ちで送っています
+- **バックアップ未自動化・単一障害点**。1 台構成のため、このインスタンスが落ちるとサービス全体が止まります
 
-## コントリビューション
-
-バグ報告や機能提案は GitHub Issues で受け付けています。
-プルリクエストも歓迎しています。
+今後やりたいこと: 写真の添付、施術履歴の検索、前回施術からの経過日数の通知。
 
 ## ライセンス
 
 MIT License
-
-## 連絡先
-
-ご質問やご提案は、GitHub Issues またはメールでお願いします。
