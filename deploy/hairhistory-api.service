@@ -1,0 +1,36 @@
+; Install to /etc/systemd/system/hairhistory-api.service, then:
+;   sudo systemctl daemon-reload && sudo systemctl enable --now hairhistory-api
+
+[Unit]
+Description=HairHistory API
+Documentation=https://github.com/2410as/HairHistory
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/hairhistory
+EnvironmentFile=/etc/hairhistory/api.env
+ExecStart=/opt/hairhistory/bin/api
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=true
+LockPersonality=true
+; No ReadWritePaths: the API only logs to stdout and needs no writable path on
+; disk. PrivateTmp already supplies a private /tmp. Add one here only if that
+; changes (e.g. file uploads).
+
+[Install]
+WantedBy=multi-user.target

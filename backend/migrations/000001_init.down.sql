@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS share_links;
+DROP TABLE IF EXISTS treatments;
+DROP TABLE IF EXISTS users;

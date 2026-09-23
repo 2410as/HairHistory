@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: hairhistory-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hairhistory
+      POSTGRES_PASSWORD: hairhistory
+      POSTGRES_DB: hairhistory
+    ports:
+      # Override POSTGRES_PORT when 5432 is already taken by another Postgres.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - hairhistory-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hairhistory -d hairhistory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hairhistory-db-data:
