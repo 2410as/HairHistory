@@ -48,13 +48,45 @@ git -C "${APP_DIR}" rev-parse --short HEAD
 # ------------------------------------------------------------------ variables
 # The build needs DATABASE_URL and GOOGLE_CLIENT_ID; read them from the same
 # file systemd uses so the values are defined in exactly one place.
+#
+# ${ENV_FILE} holds the DB password, so it stays root-owned and chmod 600 - this
+# script runs as ubuntu and therefore reads it through sudo instead of sourcing
+# it directly. systemd reads the same file as root, so the permissions must not
+# be relaxed. The contents travel through a variable and a here-string, never
+# through a command line argument, so the password cannot show up in ps; xtrace
+# is suspended around the read so it cannot show up in a `bash -x` log either.
+xtrace_was_on=0
+if [[ $- == *x* ]]; then
+  xtrace_was_on=1
+  set +x
+fi
+
+env_contents=""
+if ! env_contents="$(sudo cat "${ENV_FILE}")"; then
+  cat >&2 <<EOF
+ERROR: ${ENV_FILE} が読めません。sudo 権限が必要です。
+       Could not read ${ENV_FILE} (root-owned, mode 600).
+       Run this script as a user with sudo, for example:
+         sudo -v && bash deploy/03-deploy-app.sh ${BRANCH}
+       Do NOT chmod the file to make it world-readable; it contains the DB password.
+EOF
+  exit 1
+fi
+
 set -a
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
+# shellcheck disable=SC1090,SC1091
+source /dev/stdin <<<"${env_contents}"
 set +a
+
+unset env_contents
 
 : "${DATABASE_URL:?DATABASE_URL is not set in ${ENV_FILE}}"
 : "${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is not set in ${ENV_FILE}}"
+
+if [[ "${xtrace_was_on}" -eq 1 ]]; then
+  set -x
+fi
+unset xtrace_was_on
 
 # --------------------------------------------------------------- backend build
 log "Building the API binary"
@@ -76,6 +108,13 @@ log "Applying database migrations"
 if ! command -v migrate >/dev/null 2>&1; then
   log "Installing golang-migrate"
   go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+  hash -r
+fi
+
+if ! command -v migrate >/dev/null 2>&1; then
+  echo "ERROR: migrate が PATH にありません（go install 後も見つかりません）。" >&2
+  echo "       Expected it at $(go env GOPATH)/bin/migrate - add that directory to PATH." >&2
+  exit 1
 fi
 
 migrate -path "${APP_DIR}/backend/migrations" -database "${DATABASE_URL}" up
