@@ -20,7 +20,7 @@
 | SSH キーペア | AWS コンソール | ログインできない |
 | DB パスワード | 自分で生成（`openssl rand -base64 24`） | 手順 2 が止まる |
 | **Google OAuth クライアント ID** | Google Cloud Console（下の手順 4 参照） | `APP_ENV=production` では **API が起動しない** |
-| ドメイン名（任意） | Route 53 など | EC2 の Public DNS でも動くが、HTTPS 化には実質必須 |
+| ドメイン名 | **DuckDNS（無料）** または Route 53 など | EC2 の Public DNS でも HTTP では動くが、**HTTPS 化には必須**（手順 10） |
 
 > t2.micro（メモリ 1GB）だと `npm run build`（TypeScript + Vite）がメモリ不足で落ちることがあります。落ちたらスワップを 2GB 足すか、インスタンスサイズを上げてください。
 
@@ -194,6 +194,122 @@ bash deploy/03-deploy-app.sh main
 
 ---
 
+## 10. HTTPS 化する（DuckDNS + Let's Encrypt / 無料）
+
+HTTP のままだと `APP_ENV=production` に切り替えられません。production はセッション Cookie に `Secure` を付けるため、HTTPS でないとブラウザが Cookie を保存せず、ログインが成立しないからです。
+Let's Encrypt の証明書は IP アドレスには発行できないので、まず**名前**が要ります。ドメインを買わずに済ませるなら DuckDNS の無料サブドメインを使います。
+
+### 10-1. DuckDNS でサブドメインを取る
+
+1. <https://www.duckdns.org/> を開き、GitHub / Google などでログイン
+2. 好きな名前（例: `hairhistory-anna`）を入力して **add domain**
+3. `current ip` の欄に **EC2 の Public IP** を入れて **update ip**
+4. これで `hairhistory-anna.duckdns.org` がサーバーを指します
+
+> ページに表示される **token は秘密情報**です。README・コミット・チャットに貼らないでください。IP を手で更新する運用なら token は使いません。
+>
+> EC2 を停止→起動すると Public IP が変わります（Elastic IP を割り当てていない場合）。変わったら DuckDNS の `current ip` を入れ直してください。証明書自体は取り直し不要です。
+
+反映されたかの確認:
+
+```bash
+dig +short A hairhistory-anna.duckdns.org    # → EC2 の Public IP が返れば OK
+```
+
+### 10-2. セキュリティグループ
+
+**443/tcp を 0.0.0.0/0 に開けます。80/tcp も開けたままにしてください**（Let's Encrypt の HTTP-01 認証が 80 番に来ます。閉じていると証明書が取れず、更新もできません）。
+
+### 10-3. 証明書を取る
+
+```bash
+cd ~/HairHistory && git pull
+CERTBOT_EMAIL=you@example.com \
+  bash deploy/04-setup-https.sh hairhistory-anna.duckdns.org
+```
+
+やること:
+
+1. このサーバーの Public IP を判定し、**引数のドメインがそこを指しているか確認**（不一致なら証明書取得を試みずに停止。Let's Encrypt のレート制限＝同一ドメイン 1 時間に 5 失敗、を無駄に消費しないため）
+2. `certbot` と `python3-certbot-nginx` を apt で導入（導入済みならスキップ）
+3. `/etc/nginx/sites-available/hairhistory` の `server_name` を引数のドメインに書き換え（バックアップあり・`nginx -t` 失敗時は自動で復元）
+4. `certbot --nginx --redirect` で証明書取得 → 443 待ち受けと 80→443 リダイレクトを nginx に書き込み
+5. `certbot.timer` を有効化し、`certbot renew --dry-run` で自動更新をテスト
+
+`CERTBOT_EMAIL` は必須にしてあります。証明書は 90 日で失効するため、通知先が無いと更新失敗に気づけずサイトが丸ごと開かなくなるからです。どうしても登録したくない場合だけ `CERTBOT_ALLOW_NO_EMAIL=1` を付けてください。
+
+確認:
+
+```bash
+curl -I https://hairhistory-anna.duckdns.org/          # 200
+curl -I http://hairhistory-anna.duckdns.org/           # 301 → https://...
+sudo certbot certificates                              # 有効期限
+```
+
+---
+
+## 11. 本番モードに切り替える（Google ログインを有効化）
+
+### 11-1. Google OAuth クライアント ID を用意する
+
+手順 4 と同じ画面ですが、**承認済みの JavaScript 生成元に HTTPS の URL を登録**します。
+
+1. <https://console.cloud.google.com/> → プロジェクトを選択（無ければ作成）
+2. 「API とサービス」→「OAuth 同意画面」
+   - User Type: External、アプリ名・サポートメール・デベロッパー連絡先を入力
+   - 公開ステータスが「テスト」の間は、**テストユーザーに登録したアカウントしかログインできません**。自分の Gmail を追加しておくこと
+3. 「認証情報」→「認証情報を作成」→「OAuth クライアント ID」→ 種類: **ウェブ アプリケーション**
+4. **承認済みの JavaScript 生成元**に次を追加（末尾スラッシュ無し・完全一致）
+
+   ```
+   https://hairhistory-anna.duckdns.org
+   ```
+
+5. **承認済みのリダイレクト URI は空のままでよい**（Google Identity Services のトークン方式で、リダイレクトを使わないため）
+6. **クライアントシークレットは使いません**。サーバーにも置かないでください
+7. 発行された `xxxxx.apps.googleusercontent.com` を控える（次のコマンドで渡します）
+
+> 既存のクライアント ID を使い回す場合も、生成元に `https://...` を追加し忘れると、ブラウザのコンソールに `The given origin is not allowed for the given client ID` が出てボタンが機能しません。
+
+### 11-2. 切り替えスクリプトを実行する
+
+```bash
+cd ~/HairHistory && git pull
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com \
+  bash deploy/05-enable-production.sh hairhistory-anna.duckdns.org
+```
+
+やること:
+
+1. `https://<domain>/healthz` が 200 を返すか確認（駄目なら **api.env を一切変更せずに停止**）
+2. `/etc/hairhistory/api.env` をタイムスタンプ付きでバックアップ（`api.env.bak.YYYYmmddHHMMSS`、root:root 600）
+3. `APP_ENV=production` / `GOOGLE_CLIENT_ID` / `CORS_ALLOWED_ORIGINS=https://<domain>` の 3 行だけ書き換え
+   **`DATABASE_URL` は書き換え前後で一致することを検証してから書き戻す**ので、DB 接続情報が壊れることはありません
+4. `deploy/03-deploy-app.sh` を呼んで再デプロイ（フロントは `VITE_GOOGLE_CLIENT_ID` を**ビルド時に**埋め込むので、再ビルドしないと Google ボタンは無効のままです）
+5. `POST /api/auth/dev-login` が **404** を返すことを確認（404 以外なら警告を出して異常終了）
+
+`SKIP_DEPLOY=1` を付けると api.env の更新だけ行い、再デプロイは自分のタイミングで実行できます。
+
+### 11-3. 確認
+
+```bash
+curl -I https://hairhistory-anna.duckdns.org/
+curl -i -X POST https://hairhistory-anna.duckdns.org/api/auth/dev-login \
+  -H 'Content-Type: application/json' -d '{"email":"a@example.com","name":"a"}'   # → 404
+sudo grep '^APP_ENV=' /etc/hairhistory/api.env                                     # → production
+```
+
+ブラウザで `https://hairhistory-anna.duckdns.org/login` を開き、「Google でログイン」ボタン（Google 公式のボタンが表示されます）からログインできれば完了です。
+
+**元に戻したいとき:**
+
+```bash
+sudo cp -p /etc/hairhistory/api.env.bak.<タイムスタンプ> /etc/hairhistory/api.env
+bash deploy/03-deploy-app.sh main
+```
+
+---
+
 ## トラブルシュート
 
 ```bash
@@ -224,6 +340,10 @@ psql "postgres://hairhistory@127.0.0.1:5432/hairhistory" -c '\dt'
 | API 呼び出しが CORS で落ちる | `CORS_ALLOWED_ORIGINS` が実際のアクセス URL と不一致（スキーム・末尾スラッシュに注意） |
 | ログインしてもすぐログアウトされる | HTTPS 化後に `APP_ENV` が production でない等で Cookie の Secure 属性が不整合 |
 | `npm run build` が Killed で終わる | メモリ不足。スワップを足すかインスタンスを大きくする |
+| `04-setup-https.sh` が「DNS が一致しない」で止まる | DuckDNS の `current ip` が古い。EC2 の Public IP に更新して数分待つ |
+| certbot が `Timeout during connect` で失敗 | セキュリティグループで 80/tcp が閉じている（HTTP-01 認証は 80 番に来る） |
+| certbot が `too many failed authorizations` | Let's Encrypt のレート制限。1 時間待ってから、DNS を直した上で再実行 |
+| HTTPS 化後に証明書が切れた | `sudo systemctl status certbot.timer` と `sudo certbot renew --dry-run` を確認 |
 
 ---
 
@@ -277,6 +397,8 @@ sudo -u postgres pg_dump hairhistory > ~/hairhistory-$(date +%Y%m%d-%H%M).sql
 
 ## 残っているリスク（把握しておくこと）
 
-- **HTTP のみ** … セッション Cookie が平文で流れます。ドメインを用意して `certbot --nginx` で TLS を有効化するまでは、本番利用しないでください。
+- **手順 10 を済ませるまでは HTTP のみ** … セッション Cookie が平文で流れます。`deploy/04-setup-https.sh` で TLS を有効化するまでは、本番利用しないでください。
+- **DuckDNS 依存** … 無料サービスなので SLA はありません。停止すると名前が引けなくなり、証明書の更新も通りません。長期運用するなら独自ドメインへ移行してください。
+- **Public IP が変わると名前が外れる** … Elastic IP を割り当てていない EC2 は停止→起動で IP が変わります。DuckDNS の `current ip` を更新するまでサイトは開けません。
 - **バックアップが自動化されていない** … `pg_dump` を cron に入れる、EBS スナップショットを取る、などを別途検討。
 - **1 台構成** … このインスタンスが落ちるとサービス全体が落ちます（学習・ポートフォリオ用途としては妥当な割り切り）。
