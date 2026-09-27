@@ -1,7 +1,8 @@
 import { Box, Input, Text } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ActionButton } from '../components/ActionButton';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { CARD, COLOR, FONT } from '../design';
@@ -36,7 +37,7 @@ interface LocationState {
 export const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { devLogin } = useAuth();
+  const { devLogin, googleLogin } = useAuth();
 
   const [email, setEmail] = useState('anna@example.com');
   const [name, setName] = useState('Anna');
@@ -44,6 +45,22 @@ export const Login = () => {
   const [error, setError] = useState<string | null>(null);
 
   const redirectTo = (location.state as LocationState | null)?.from ?? '/dashboard';
+
+  const handleGoogleCredential = useCallback(
+    async (idToken: string) => {
+      setIsSubmitting(true);
+      setError(null);
+      try {
+        await googleLogin(idToken);
+        navigate(redirectTo, { replace: true });
+      } catch (err) {
+        setError(toErrorMessage(err));
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [googleLogin, navigate, redirectTo]
+  );
 
   const handleDevLogin = async () => {
     if (!email.trim()) {
@@ -76,21 +93,35 @@ export const Login = () => {
           borderRadius={CARD.borderRadius}
           p={{ base: '24px', md: '32px' }}
         >
-          <ActionButton
-            variant="secondary"
-            width="100%"
-            fontSize="15px"
-            px="24px"
-            py="14px"
-            disabled={!GOOGLE_CLIENT_ID}
-          >
-            Google でログイン
-          </ActionButton>
-          {!GOOGLE_CLIENT_ID && (
-            <Text fontFamily={FONT} fontSize="13px" color={COLOR.faint} mt="10px" lineHeight="1.7">
-              クライアント ID 未設定のため無効です。VITE_GOOGLE_CLIENT_ID
-              を設定すると有効になります。
-            </Text>
+          {GOOGLE_CLIENT_ID ? (
+            <GoogleSignInButton
+              clientId={GOOGLE_CLIENT_ID}
+              onCredential={handleGoogleCredential}
+              onError={setError}
+            />
+          ) : (
+            <>
+              <ActionButton
+                variant="secondary"
+                width="100%"
+                fontSize="15px"
+                px="24px"
+                py="14px"
+                disabled
+              >
+                Google でログイン
+              </ActionButton>
+              <Text
+                fontFamily={FONT}
+                fontSize="13px"
+                color={COLOR.faint}
+                mt="10px"
+                lineHeight="1.7"
+              >
+                クライアント ID 未設定のため無効です。VITE_GOOGLE_CLIENT_ID
+                を設定すると有効になります。
+              </Text>
+            </>
           )}
 
           <Box
