@@ -21,9 +21,9 @@ function App() {
       <ErrorBoundary>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
             <Route path="/share/:token" element={<PublicShare />} />
             <Route element={<Layout />}>
+              <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />

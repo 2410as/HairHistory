@@ -1,5 +1,7 @@
 import { Box, Heading, Text } from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import { SkeletonLoader } from "../components/SkeletonLoader";
+import { useAuth } from "../contexts/AuthContext";
 import { FONT } from "../design";
 
 const TAGS = ["施術履歴", "施術の登録", "リンク共有"];
@@ -282,105 +284,116 @@ const SCREENS = [<ScreenHistory key="history" />, <ScreenForm key="form" />, <Sc
 
 export const Home = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <Box aria-busy="true">
+        <SkeletonLoader />
+      </Box>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
-    <Box width="100%" bg="#ffffff" minHeight="100vh">
-      <Box maxW="1160px" margin="0 auto" px={{ base: "24px", md: "40px" }} py={{ base: "64px", md: "110px" }}>
-        <Heading
-          as="h1"
-          textAlign="center"
-          fontFamily={FONT}
-          fontSize={{ base: "34px", md: "52px" }}
-          fontWeight="700"
-          lineHeight="1.25"
-          letterSpacing="-0.01em"
-          color="#000000"
-        >
-          HairHistory でできること
-        </Heading>
-        <Text
-          textAlign="center"
-          fontFamily={FONT}
-          fontSize={{ base: "14px", md: "16px" }}
-          color="#666666"
-          lineHeight="1.8"
-          mt={{ base: "16px", md: "20px" }}
-        >
-          あなたの髪のストーリーを、記録して、共有する。
-        </Text>
+    <Box pt={{ base: "0", md: "32px" }}>
+      <Heading
+        as="h1"
+        textAlign="center"
+        fontFamily={FONT}
+        fontSize={{ base: "34px", md: "52px" }}
+        fontWeight="700"
+        lineHeight="1.25"
+        letterSpacing="-0.01em"
+        color="#000000"
+      >
+        HairHistory でできること
+      </Heading>
+      <Text
+        textAlign="center"
+        fontFamily={FONT}
+        fontSize={{ base: "14px", md: "16px" }}
+        color="#666666"
+        lineHeight="1.8"
+        mt={{ base: "16px", md: "20px" }}
+      >
+        あなたの髪のストーリーを、記録して、共有する。
+      </Text>
 
-        <Box
-          display="grid"
-          gridTemplateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
-          gap={{ base: "48px", md: "40px" }}
-          mt={{ base: "56px", md: "80px" }}
-        >
-          {TAGS.map((tag, index) => (
-            <Box key={tag} display="flex" flexDirection="column" alignItems="center">
-              <Box
-                bg="#ffffff"
-                border="1px solid #dcdcdc"
-                borderRadius="999px"
-                px="24px"
-                py="9px"
-                mb={{ base: "24px", md: "32px" }}
-              >
-                <Text fontFamily={FONT} fontSize={{ base: "13px", md: "14px" }} fontWeight="600" color="#000000">
-                  {tag}
-                </Text>
-              </Box>
-              <PhoneFrame>{SCREENS[index]}</PhoneFrame>
-            </Box>
-          ))}
-        </Box>
-
-        <Box
-          maxW="780px"
-          margin="0 auto"
-          mt={{ base: "72px", md: "110px" }}
-          display="flex"
-          flexDirection="column"
-          gap={{ base: "36px", md: "44px" }}
-        >
-          {FEATURES.map((feature) => (
-            <Box key={feature.title} borderTop="1px solid #e5e5e5" pt={{ base: "24px", md: "30px" }}>
-              <Heading
-                as="h2"
-                fontFamily={FONT}
-                fontSize={{ base: "19px", md: "23px" }}
-                fontWeight="700"
-                lineHeight="1.4"
-                color="#000000"
-                mb={{ base: "10px", md: "14px" }}
-              >
-                {feature.title}
-              </Heading>
-              <Text fontFamily={FONT} fontSize={{ base: "14px", md: "16px" }} color="#666666" lineHeight="1.9">
-                {feature.body}
+      <Box
+        display="grid"
+        gridTemplateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
+        gap={{ base: "48px", md: "40px" }}
+        mt={{ base: "56px", md: "80px" }}
+      >
+        {TAGS.map((tag, index) => (
+          <Box key={tag} display="flex" flexDirection="column" alignItems="center">
+            <Box
+              bg="#ffffff"
+              border="1px solid #dcdcdc"
+              borderRadius="999px"
+              px="24px"
+              py="9px"
+              mb={{ base: "24px", md: "32px" }}
+            >
+              <Text fontFamily={FONT} fontSize={{ base: "13px", md: "14px" }} fontWeight="600" color="#000000">
+                {tag}
               </Text>
             </Box>
-          ))}
-        </Box>
-
-        <Box display="flex" justifyContent="center" mt={{ base: "64px", md: "96px" }}>
-          <Box
-            as="button"
-            onClick={() => navigate("/dashboard")}
-            bg="#000000"
-            color="#ffffff"
-            fontFamily={FONT}
-            fontSize={{ base: "15px", md: "16px" }}
-            fontWeight="600"
-            borderRadius="999px"
-            border="none"
-            px={{ base: "44px", md: "56px" }}
-            py={{ base: "18px", md: "21px" }}
-            cursor="pointer"
-            transition="all 200ms ease"
-            _hover={{ bg: "#333333", transform: "translateY(-2px)", boxShadow: "0 10px 24px rgba(0,0,0,0.2)" }}
-          >
-            今すぐ始める
+            <PhoneFrame>{SCREENS[index]}</PhoneFrame>
           </Box>
+        ))}
+      </Box>
+
+      <Box
+        maxW="780px"
+        margin="0 auto"
+        mt={{ base: "72px", md: "110px" }}
+        display="flex"
+        flexDirection="column"
+        gap={{ base: "36px", md: "44px" }}
+      >
+        {FEATURES.map((feature) => (
+          <Box key={feature.title} borderTop="1px solid #e5e5e5" pt={{ base: "24px", md: "30px" }}>
+            <Heading
+              as="h2"
+              fontFamily={FONT}
+              fontSize={{ base: "19px", md: "23px" }}
+              fontWeight="700"
+              lineHeight="1.4"
+              color="#000000"
+              mb={{ base: "10px", md: "14px" }}
+            >
+              {feature.title}
+            </Heading>
+            <Text fontFamily={FONT} fontSize={{ base: "14px", md: "16px" }} color="#666666" lineHeight="1.9">
+              {feature.body}
+            </Text>
+          </Box>
+        ))}
+      </Box>
+
+      <Box display="flex" justifyContent="center" mt={{ base: "64px", md: "96px" }}>
+        <Box
+          as="button"
+          onClick={() => navigate("/dashboard")}
+          bg="#000000"
+          color="#ffffff"
+          fontFamily={FONT}
+          fontSize={{ base: "15px", md: "16px" }}
+          fontWeight="600"
+          borderRadius="999px"
+          border="none"
+          px={{ base: "44px", md: "56px" }}
+          py={{ base: "18px", md: "21px" }}
+          cursor="pointer"
+          transition="all 200ms ease"
+          _hover={{ bg: "#333333", transform: "translateY(-2px)", boxShadow: "0 10px 24px rgba(0,0,0,0.2)" }}
+        >
+          今すぐ始める
         </Box>
       </Box>
     </Box>

@@ -1,9 +1,10 @@
 import { Box, Input, Text } from '@chakra-ui/react';
 import { useCallback, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ActionButton } from '../components/ActionButton';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { PageHeader } from '../components/PageHeader';
+import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useAuth } from '../contexts/AuthContext';
 import { CARD, COLOR, FONT } from '../design';
 import { toErrorMessage } from '../lib/apiClient';
@@ -37,7 +38,7 @@ interface LocationState {
 export const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { devLogin, googleLogin } = useAuth();
+  const { user, isLoading, devLogin, googleLogin } = useAuth();
 
   const [email, setEmail] = useState('anna@example.com');
   const [name, setName] = useState('Anna');
@@ -78,6 +79,18 @@ export const Login = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Box aria-busy="true">
+        <SkeletonLoader />
+      </Box>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   return (
     <Box>
