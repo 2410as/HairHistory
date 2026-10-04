@@ -1,4 +1,4 @@
-import { Box, chakra, Input, Textarea, Text } from "@chakra-ui/react";
+import { Box, Input, Textarea, Text } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ActionButton } from "../components/ActionButton";
@@ -36,7 +36,8 @@ const FIELD_STYLES = {
 
 const SERVICE_OPTIONS = ["カット", "カラー", "パーマ", "トリートメント", "ヘッドスパ"];
 
-const Select = chakra("select");
+const MAX_SERVICES = 10;
+const MAX_SERVICE_LENGTH = 50;
 
 interface FieldProps {
   label: string;
@@ -72,8 +73,178 @@ const Field = ({ label, required, error, children }: FieldProps) => (
   </Box>
 );
 
+interface ServiceSelectorProps {
+  selected: string[];
+  onChange: (services: string[]) => void;
+}
+
+const ServiceSelector = ({ selected, onChange }: ServiceSelectorProps) => {
+  const [draft, setDraft] = useState("");
+  const [draftError, setDraftError] = useState("");
+
+  const isFull = selected.length >= MAX_SERVICES;
+  const customServices = selected.filter((service) => !SERVICE_OPTIONS.includes(service));
+
+  const toggleOption = (option: string) => {
+    setDraftError("");
+    if (selected.includes(option)) {
+      onChange(selected.filter((service) => service !== option));
+      return;
+    }
+    if (isFull) {
+      setDraftError(`施術項目は最大 ${MAX_SERVICES} 件までです`);
+      return;
+    }
+    onChange([...selected, option]);
+  };
+
+  const addDraft = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setDraftError("追加する施術項目を入力してください");
+      return;
+    }
+    if (trimmed.length > MAX_SERVICE_LENGTH) {
+      setDraftError(`1 件あたり ${MAX_SERVICE_LENGTH} 文字までです`);
+      return;
+    }
+    if (selected.includes(trimmed)) {
+      setDraftError("すでに追加されています");
+      return;
+    }
+    if (isFull) {
+      setDraftError(`施術項目は最大 ${MAX_SERVICES} 件までです`);
+      return;
+    }
+    onChange([...selected, trimmed]);
+    setDraft("");
+    setDraftError("");
+  };
+
+  const removeService = (service: string) => {
+    setDraftError("");
+    onChange(selected.filter((item) => item !== service));
+  };
+
+  return (
+    <Box>
+      <Box display="flex" flexWrap="wrap" gap="8px">
+        {SERVICE_OPTIONS.map((option) => {
+          const isSelected = selected.includes(option);
+          return (
+            <Box
+              as="button"
+              key={option}
+              role="checkbox"
+              aria-checked={isSelected}
+              aria-label={option}
+              onClick={() => toggleOption(option)}
+              fontFamily={FONT}
+              fontSize="14px"
+              fontWeight="600"
+              borderRadius="999px"
+              px="16px"
+              py="9px"
+              cursor="pointer"
+              transition="all 200ms ease"
+              bg={isSelected ? COLOR.black : COLOR.white}
+              color={isSelected ? COLOR.white : COLOR.black}
+              border={`1px solid ${isSelected ? COLOR.black : COLOR.border}`}
+              _hover={{
+                borderColor: isSelected ? COLOR.black : COLOR.borderStrong,
+                bg: isSelected ? "#333333" : COLOR.surface,
+              }}
+            >
+              {option}
+            </Box>
+          );
+        })}
+      </Box>
+
+      {customServices.length > 0 && (
+        <Box display="flex" flexWrap="wrap" gap="8px" mt="12px">
+          {customServices.map((service) => (
+            <Box
+              key={service}
+              bg={COLOR.surface}
+              borderRadius="999px"
+              pl="14px"
+              pr="8px"
+              py="7px"
+              display="flex"
+              alignItems="center"
+              gap="8px"
+            >
+              <Text fontFamily={FONT} fontSize="13px" fontWeight="600" color={COLOR.black}>
+                {service}
+              </Text>
+              <Box
+                as="button"
+                aria-label={`${service} を外す`}
+                onClick={() => removeService(service)}
+                fontFamily={FONT}
+                fontSize="13px"
+                lineHeight="1"
+                color={COLOR.muted}
+                bg="transparent"
+                border="none"
+                cursor="pointer"
+                px="4px"
+                _hover={{ color: COLOR.black }}
+              >
+                ×
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      <Box display="flex" gap="8px" mt="12px">
+        <Input
+          aria-label="その他の施術項目"
+          value={draft}
+          maxLength={MAX_SERVICE_LENGTH}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setDraftError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            addDraft();
+          }}
+          placeholder="例）縮毛矯正、ブリーチ"
+          flex="1"
+          {...FIELD_STYLES}
+        />
+        <Box
+          as="button"
+          {...SECONDARY_BUTTON}
+          fontSize="14px"
+          px="20px"
+          py="12px"
+          flexShrink={0}
+          onClick={addDraft}
+        >
+          追加
+        </Box>
+      </Box>
+
+      <Text fontFamily={FONT} fontSize="12px" color={COLOR.faint} mt="8px" lineHeight="1.7">
+        {`選択中 ${selected.length} / ${MAX_SERVICES} 件。1 件あたり ${MAX_SERVICE_LENGTH} 文字まで。`}
+      </Text>
+
+      {draftError && (
+        <Text fontFamily={FONT} fontSize="13px" color={COLOR.muted} mt="6px">
+          {draftError}
+        </Text>
+      )}
+    </Box>
+  );
+};
+
 interface FormState {
-  service: string;
+  services: string[];
   treatedOn: string;
   salonName: string;
   memo: string;
@@ -81,7 +252,7 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  service: "",
+  services: [],
   treatedOn: "",
   salonName: "",
   memo: "",
@@ -108,7 +279,7 @@ export const TreatmentDetail = () => {
   useEffect(() => {
     if (!treatment) return;
     setFormData({
-      service: treatment.services[0] ?? "",
+      services: [...treatment.services],
       treatedOn: treatment.treatedOn,
       salonName: treatment.salonName ?? "",
       memo: treatment.memo ?? "",
@@ -117,7 +288,7 @@ export const TreatmentDetail = () => {
   }, [treatment]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -126,10 +297,24 @@ export const TreatmentDetail = () => {
     }
   };
 
+  const setServices = (services: string[]) => {
+    setFormData((prev) => ({ ...prev, services }));
+    if (errors.services) {
+      setErrors((prev) => ({ ...prev, services: "" }));
+    }
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.service.trim()) {
-      newErrors.service = "施術の種類を選択してください";
+    const services = formData.services.map((service) => service.trim());
+    if (services.length === 0) {
+      newErrors.services = "施術項目を 1 件以上選択してください";
+    } else if (services.length > MAX_SERVICES) {
+      newErrors.services = `施術項目は最大 ${MAX_SERVICES} 件までです`;
+    } else if (services.some((service) => !service)) {
+      newErrors.services = "空の施術項目は保存できません";
+    } else if (services.some((service) => service.length > MAX_SERVICE_LENGTH)) {
+      newErrors.services = `施術項目は 1 件あたり ${MAX_SERVICE_LENGTH} 文字までです`;
     }
     if (!formData.treatedOn) {
       newErrors.treatedOn = "日付を入力してください";
@@ -144,7 +329,7 @@ export const TreatmentDetail = () => {
   const buildInput = (): TreatmentInput => {
     const input: TreatmentInput = {
       treatedOn: formData.treatedOn,
-      services: [formData.service.trim()],
+      services: formData.services.map((service) => service.trim()),
     };
     if (formData.salonName.trim()) input.salonName = formData.salonName.trim();
     if (formData.memo.trim()) input.memo = formData.memo.trim();
@@ -246,23 +431,8 @@ export const TreatmentDetail = () => {
           borderRadius={CARD.borderRadius}
           p={{ base: "24px", md: "32px" }}
         >
-          <Field label="施術の種類" required error={errors.service}>
-            <Select
-              name="service"
-              aria-label="施術の種類"
-              value={formData.service}
-              onChange={handleChange}
-              width="100%"
-              cursor="pointer"
-              {...FIELD_STYLES}
-            >
-              <option value="">選択してください</option>
-              {SERVICE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
+          <Field label="施術項目" required error={errors.services}>
+            <ServiceSelector selected={formData.services} onChange={setServices} />
           </Field>
 
           <Field label="日付" required error={errors.treatedOn}>

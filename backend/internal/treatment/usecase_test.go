@@ -154,6 +154,17 @@ func TestUsecaseCreateValidation(t *testing.T) {
 			wantDetail: "services",
 		},
 		{
+			name:       "service item too long",
+			input:      Input{TreatedOn: "2026-09-10", Services: []string{"カット", longString(51)}},
+			wantCode:   httpx.CodeInvalidArgument,
+			wantDetail: "services",
+		},
+		{
+			name:         "service item at max length",
+			input:        Input{TreatedOn: "2026-09-10", Services: []string{longString(50)}},
+			wantServices: []string{longString(50)},
+		},
+		{
 			name:       "salonName too long",
 			input:      Input{TreatedOn: "2026-09-10", Services: []string{"カット"}, SalonName: ptr(longString(101))},
 			wantCode:   httpx.CodeInvalidArgument,

@@ -11,6 +11,7 @@ import (
 
 const (
 	maxServices       = 10
+	maxServiceRunes   = 50
 	maxSalonNameRunes = 100
 	maxMemoRunes      = 1000
 )
@@ -80,6 +81,9 @@ func normalizeServices(raw []string) ([]string, error) {
 		trimmed := strings.TrimSpace(item)
 		if trimmed == "" {
 			return nil, fmt.Errorf("items must not be empty")
+		}
+		if utf8.RuneCountInString(trimmed) > maxServiceRunes {
+			return nil, fmt.Errorf("each item must be at most %d characters", maxServiceRunes)
 		}
 		services = append(services, trimmed)
 	}
