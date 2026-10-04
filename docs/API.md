@@ -296,6 +296,7 @@ curl -s -b /tmp/hh.jar -c /tmp/hh.jar -X POST http://localhost:8080/api/auth/log
 - セッショントークンは平文で保存しない。SHA-256 ハッシュを `sessions.token_hash` に保存し、照合もハッシュで行う
 - 共有トークンは 32 バイトの暗号論的乱数
 - ID Token / セッショントークン / メールアドレスをログに出力しない
+- 共有トークンをログに出力しない。`GET /api/public/shares/{token}` と `DELETE /api/shares/{token}` のパスは、アクセスログに書き出す前にトークン部分を `[REDACTED]` に置き換える（API 側は `httpx.RedactPath`、nginx 側は `deploy/nginx-hairhistory.conf` の `$logged_uri`）。施術 ID（UUID）は秘密情報ではないのでマスクしない
 - SQL は必ずプレースホルダ（`$1`）でバインドする。文字列連結でクエリを組み立てない
 - 内部エラーの詳細はレスポンスに載せず、サーバーログにのみ出力する
 - Cookie の `Secure` 属性は `APP_ENV=production` のときのみ有効

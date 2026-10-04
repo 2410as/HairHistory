@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,6 +58,31 @@ func (s *statusRecorder) Write(b []byte) (int, error) {
 	return s.ResponseWriter.Write(b)
 }
 
+const redactedSegment = "[REDACTED]"
+
+// Paths whose first segment after the prefix is a secret, not an identifier.
+var secretSegmentPrefixes = []string{
+	"/api/public/shares/",
+	"/api/shares/",
+}
+
+func RedactPath(path string) string {
+	for _, prefix := range secretSegmentPrefixes {
+		if !strings.HasPrefix(path, prefix) {
+			continue
+		}
+		rest := path[len(prefix):]
+		if rest == "" {
+			return path
+		}
+		if slash := strings.IndexByte(rest, '/'); slash >= 0 {
+			return prefix + redactedSegment + rest[slash:]
+		}
+		return prefix + redactedSegment
+	}
+	return path
+}
+
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -65,7 +91,7 @@ func Logging(next http.Handler) http.Handler {
 		slog.Info("request",
 			"request_id", RequestIDFromContext(r.Context()),
 			"method", r.Method,
-			"path", r.URL.Path,
+			"path", RedactPath(r.URL.Path),
 			"status", recorder.status,
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
@@ -79,7 +105,7 @@ func Recoverer(next http.Handler) http.Handler {
 				slog.Error("panic recovered",
 					"request_id", RequestIDFromContext(r.Context()),
 					"method", r.Method,
-					"path", r.URL.Path,
+					"path", RedactPath(r.URL.Path),
 					"panic", recovered,
 				)
 				JSON(w, http.StatusInternalServerError, errorEnvelope{Error: errorBody{

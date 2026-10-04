@@ -60,4 +60,15 @@ temp/
 frontend/screenshots/
 test-results/
 playwright-report/
+.playwright-mcp/
 summary.md
+
+# スクリーンショットの誤コミット防止（秘密情報が写った画像が公開リポジトリに入るのを防ぐ）
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+!frontend/public/**
+!frontend/src/assets/**
