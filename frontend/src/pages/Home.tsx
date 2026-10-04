@@ -2,7 +2,7 @@ import { Box, Heading, Text } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { FONT } from "../design";
 
-const TAGS = ["施術記録", "かんたん評価", "共有"];
+const TAGS = ["施術履歴", "施術の登録", "リンク共有"];
 
 const FEATURES = [
   {
@@ -10,12 +10,12 @@ const FEATURES = [
     body: "モノトーンで統一した画面構成。余計な装飾を削ぎ落とし、必要な情報だけが自然に目に入ります。はじめて開いた人でも迷わず使えます。",
   },
   {
-    title: "施術履歴の管理がスムーズに",
-    body: "カット・カラー・トリートメントの記録を日付順に一覧表示。施術の傾向はグラフで振り返れるので、次に何をすべきかがひと目でわかります。",
+    title: "施術履歴をまとめて見返せる",
+    body: "日付・施術項目・美容院名・メモ・料金を記録しておくと、新しい順にカードで一覧表示されます。カット・カラー・縮毛矯正のように複数の施術をまとめて1件に登録でき、あとから編集・削除もできます。",
   },
   {
-    title: "共有がかんたんに",
-    body: "リンクひとつで、これまでの施術履歴をスタイリストに渡せます。口頭で説明しづらい過去の薬剤や仕上がりも、正確に伝わります。",
+    title: "リンクひとつで共有できる",
+    body: "有効期限つきの共有リンクを発行して、これまでの施術履歴をスタイリストに渡せます。リンクのコピーと QR コードの保存に対応していて、不要になったリンクはいつでも無効化できます。",
   },
 ];
 
@@ -62,96 +62,125 @@ const ScreenTitle = ({ children }: { children: React.ReactNode }) => (
   </Text>
 );
 
-const ScreenHistory = () => {
-  const rows = [
-    { date: "09 / 15", label: "カット" },
-    { date: "09 / 01", label: "カラー" },
-    { date: "08 / 20", label: "トリートメント" },
-  ];
-  const bars = [38, 56, 30, 70, 48, 62];
-
-  return (
-    <>
-      <ScreenTitle>施術履歴</ScreenTitle>
-      <Box display="flex" flexDirection="column" gap="6px">
-        {rows.map((row) => (
-          <Box
-            key={row.date}
-            bg="#f5f5f5"
-            borderRadius="8px"
-            px="10px"
-            py="8px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Text fontFamily={FONT} fontSize="9px" fontWeight="600" color="#000000">
-              {row.label}
-            </Text>
-            <Text fontFamily={FONT} fontSize="9px" color="#666666">
-              {row.date}
-            </Text>
-          </Box>
-        ))}
-      </Box>
-      <Box
-        borderTop="1px solid #e5e5e5"
-        pt="10px"
-        mt="2px"
-        flex="1"
-        display="flex"
-        flexDirection="column"
-      >
-        <Text fontFamily={FONT} fontSize="9px" color="#666666" mb="8px">
-          来店ペース
-        </Text>
-        <Box display="flex" alignItems="flex-end" gap="6px" flex="1" pb="4px">
-          {bars.map((height, index) => (
-            <Box
-              key={index}
-              flex="1"
-              height={`${height}%`}
-              borderRadius="3px"
-              bg={index === 3 ? "#000000" : "#d6d6d6"}
-            />
-          ))}
-        </Box>
-      </Box>
-    </>
-  );
-};
-
-const StarRow = ({ label, score }: { label: string; score: number }) => (
-  <Box display="flex" justifyContent="space-between" alignItems="center">
-    <Text fontFamily={FONT} fontSize="9px" color="#666666">
-      {label}
+const ServiceChip = ({ children }: { children: React.ReactNode }) => (
+  <Box bg="#ffffff" border="1px solid #e5e5e5" borderRadius="999px" px="7px" py="3px">
+    <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#000000" lineHeight="1.2">
+      {children}
     </Text>
-    <Box display="flex" gap="2px">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Text key={star} fontSize="12px" lineHeight="1" color={star <= score ? "#000000" : "#dcdcdc"}>
-          ★
-        </Text>
+  </Box>
+);
+
+const HistoryCard = ({
+  services,
+  salon,
+  date,
+  cost,
+}: {
+  services: string[];
+  salon: string;
+  date: string;
+  cost: string;
+}) => (
+  <Box bg="#f5f5f5" borderRadius="10px" px="10px" py="9px">
+    <Box display="flex" flexWrap="wrap" gap="4px">
+      {services.map((service) => (
+        <ServiceChip key={service}>{service}</ServiceChip>
       ))}
+    </Box>
+    <Text fontFamily={FONT} fontSize="10px" fontWeight="700" color="#000000" mt="7px">
+      {salon}
+    </Text>
+    <Box display="flex" justifyContent="space-between" alignItems="center" mt="4px">
+      <Text fontFamily={FONT} fontSize="8px" color="#999999">
+        {date}
+      </Text>
+      <Text fontFamily={FONT} fontSize="9px" fontWeight="600" color="#000000">
+        {cost}
+      </Text>
     </Box>
   </Box>
 );
 
-const ScreenRating = () => (
+const ScreenHistory = () => (
   <>
-    <ScreenTitle>評価を入力</ScreenTitle>
-    <Box bg="#f5f5f5" borderRadius="10px" px="12px" py="12px" display="flex" flexDirection="column" gap="10px">
-      <StarRow label="仕上がり" score={5} />
-      <StarRow label="色もち" score={4} />
-      <StarRow label="扱いやすさ" score={3} />
+    <ScreenTitle>施術履歴</ScreenTitle>
+    <Box display="flex" flexDirection="column" gap="7px">
+      <HistoryCard
+        services={["カット", "カラー"]}
+        salon="HAIR STUDIO"
+        date="2026 / 09 / 15"
+        cost="¥12,000"
+      />
+      <HistoryCard
+        services={["縮毛矯正"]}
+        salon="Hair Salon ABC"
+        date="2026 / 09 / 01"
+        cost="¥18,000"
+      />
+      <HistoryCard
+        services={["トリートメント"]}
+        salon="HAIR STUDIO"
+        date="2026 / 08 / 20"
+        cost="¥6,500"
+      />
+      <HistoryCard
+        services={["カット", "ヘッドスパ"]}
+        salon="Hair Salon ABC"
+        date="2026 / 07 / 28"
+        cost="¥9,800"
+      />
     </Box>
-    <Box border="1px solid #e5e5e5" borderRadius="10px" px="10px" py="10px" flex="1">
-      <Text fontFamily={FONT} fontSize="9px" color="#999999" lineHeight="1.6">
-        メモを残す
+  </>
+);
+
+const FormField = ({ label, value }: { label: string; value: string }) => (
+  <Box>
+    <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#666666" mb="3px">
+      {label}
+    </Text>
+    <Box border="1px solid #e5e5e5" borderRadius="7px" px="8px" py="6px">
+      <Text fontFamily={FONT} fontSize="9px" color="#000000" lineHeight="1.3">
+        {value}
       </Text>
-      <Box mt="8px" display="flex" flexDirection="column" gap="5px">
-        <Box height="5px" bg="#ececec" borderRadius="3px" />
-        <Box height="5px" bg="#ececec" borderRadius="3px" />
-        <Box height="5px" bg="#ececec" borderRadius="3px" width="60%" />
+    </Box>
+  </Box>
+);
+
+const ScreenForm = () => (
+  <>
+    <ScreenTitle>施術を追加</ScreenTitle>
+    <Box display="flex" flexDirection="column" gap="7px" flex="1">
+      <FormField label="日付" value="2026 / 09 / 15" />
+      <Box>
+        <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#666666" mb="3px">
+          施術項目
+        </Text>
+        <Box display="flex" flexWrap="wrap" gap="4px">
+          <Box bg="#000000" borderRadius="999px" px="8px" py="4px">
+            <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#ffffff" lineHeight="1.2">
+              カット
+            </Text>
+          </Box>
+          <Box bg="#000000" borderRadius="999px" px="8px" py="4px">
+            <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#ffffff" lineHeight="1.2">
+              カラー
+            </Text>
+          </Box>
+          <ServiceChip>パーマ</ServiceChip>
+          <ServiceChip>ヘッドスパ</ServiceChip>
+        </Box>
+      </Box>
+      <FormField label="美容院名" value="HAIR STUDIO" />
+      <FormField label="料金" value="12000" />
+      <Box flex="1" display="flex" flexDirection="column">
+        <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#666666" mb="3px">
+          メモ
+        </Text>
+        <Box border="1px solid #e5e5e5" borderRadius="7px" px="8px" py="6px" flex="1">
+          <Text fontFamily={FONT} fontSize="8px" color="#666666" lineHeight="1.6">
+            8 トーンのアッシュ。 次回は 少し暗めに 調整する。
+          </Text>
+        </Box>
       </Box>
     </Box>
     <Box bg="#000000" borderRadius="8px" py="9px" textAlign="center">
@@ -162,46 +191,94 @@ const ScreenRating = () => (
   </>
 );
 
-const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <Box display="flex" justifyContent="space-between" alignItems="center" py="7px" borderBottom="1px solid #efefef">
-    <Text fontFamily={FONT} fontSize="9px" color="#666666">
-      {label}
-    </Text>
-    <Text fontFamily={FONT} fontSize="9px" fontWeight="600" color="#000000">
-      {value}
-    </Text>
+const QR_PATTERN = [
+  "1110111011101",
+  "1000101010001",
+  "1011100101101",
+  "1010010110101",
+  "1110101011101",
+  "0000110100000",
+  "1101011101011",
+  "0100100010110",
+  "1011101011101",
+  "0001010110010",
+  "1110100011101",
+  "1000110101001",
+  "1110101110111",
+];
+
+const QRCodeMock = () => (
+  <Box
+    bg="#ffffff"
+    border="1px solid #e5e5e5"
+    borderRadius="10px"
+    p="10px"
+    display="flex"
+    justifyContent="center"
+  >
+    <Box
+      display="grid"
+      gridTemplateColumns={`repeat(${QR_PATTERN.length}, 1fr)`}
+      width="104px"
+      aria-hidden="true"
+    >
+      {QR_PATTERN.flatMap((row, rowIndex) =>
+        row.split("").map((cell, cellIndex) => (
+          <Box
+            key={`${rowIndex}-${cellIndex}`}
+            width="100%"
+            paddingTop="100%"
+            bg={cell === "1" ? "#000000" : "#ffffff"}
+          />
+        ))
+      )}
+    </Box>
   </Box>
 );
 
-const ScreenDetail = () => (
+const ScreenShare = () => (
   <>
-    <ScreenTitle>施術詳細</ScreenTitle>
-    <Box bg="#f5f5f5" borderRadius="10px" px="12px" py="12px">
-      <Text fontFamily={FONT} fontSize="13px" fontWeight="700" color="#000000">
-        カラー
+    <ScreenTitle>共有リンク</ScreenTitle>
+    <Box bg="#f5f5f5" borderRadius="8px" px="10px" py="8px">
+      <Text fontFamily={FONT} fontSize="8px" color="#999999">
+        共有 URL
       </Text>
-      <Text fontFamily={FONT} fontSize="9px" color="#666666" mt="2px">
-        2026 / 09 / 01
+      <Text fontFamily={FONT} fontSize="8px" color="#000000" mt="3px" lineHeight="1.4">
+        hairhistory.app/shares/ ••••••••••••
       </Text>
     </Box>
-    <Box>
-      <DetailRow label="サロン" value="HAIR STUDIO" />
-      <DetailRow label="担当" value="Yuki" />
-      <DetailRow label="薬剤" value="8 トーン" />
-      <DetailRow label="料金" value="¥ 9,800" />
+    <QRCodeMock />
+    <Box display="flex" justifyContent="space-between" alignItems="center" flex="1">
+      <Text fontFamily={FONT} fontSize="8px" color="#666666">
+        有効期限
+      </Text>
+      <Text fontFamily={FONT} fontSize="8px" fontWeight="600" color="#000000">
+        2026 / 09 / 22 まで
+      </Text>
     </Box>
-    <Box border="1px solid #e5e5e5" borderRadius="10px" px="10px" py="10px" flex="1">
-      <Text fontFamily={FONT} fontSize="9px" color="#999999">
-        メモ
-      </Text>
-      <Text fontFamily={FONT} fontSize="9px" color="#666666" lineHeight="1.7" mt="5px">
-        明るめの仕上がり。 次回は 少し暗めに 調整する。
-      </Text>
+    <Box display="flex" gap="6px">
+      <Box bg="#000000" borderRadius="8px" py="9px" textAlign="center" flex="1">
+        <Text fontFamily={FONT} fontSize="9px" fontWeight="600" color="#ffffff">
+          リンクをコピー
+        </Text>
+      </Box>
+      <Box
+        bg="#ffffff"
+        border="1px solid #dcdcdc"
+        borderRadius="8px"
+        py="9px"
+        textAlign="center"
+        flex="1"
+      >
+        <Text fontFamily={FONT} fontSize="9px" fontWeight="600" color="#000000">
+          QR を保存
+        </Text>
+      </Box>
     </Box>
   </>
 );
 
-const SCREENS = [<ScreenHistory key="history" />, <ScreenRating key="rating" />, <ScreenDetail key="detail" />];
+const SCREENS = [<ScreenHistory key="history" />, <ScreenForm key="form" />, <ScreenShare key="share" />];
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -229,7 +306,7 @@ export const Home = () => {
           lineHeight="1.8"
           mt={{ base: "16px", md: "20px" }}
         >
-          あなたの髪のストーリーを、記録して、評価して、共有する。
+          あなたの髪のストーリーを、記録して、共有する。
         </Text>
 
         <Box
