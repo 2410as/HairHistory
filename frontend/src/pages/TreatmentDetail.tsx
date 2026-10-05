@@ -12,6 +12,7 @@ import {
   useUpdateTreatment,
 } from "../hooks/useTreatments";
 import { toErrorMessage } from "../lib/apiClient";
+import { MAX_SERVICE_LENGTH, MAX_SERVICES, SERVICE_OPTIONS } from "../serviceOptions";
 import type { TreatmentInput } from "../types";
 
 const FIELD_STYLES = {
@@ -33,11 +34,6 @@ const FIELD_STYLES = {
     outline: "none",
   },
 };
-
-const SERVICE_OPTIONS = ["カット", "カラー", "パーマ", "トリートメント", "ヘッドスパ"];
-
-const MAX_SERVICES = 10;
-const MAX_SERVICE_LENGTH = 50;
 
 interface FieldProps {
   label: string;
@@ -213,7 +209,7 @@ const ServiceSelector = ({ selected, onChange }: ServiceSelectorProps) => {
             e.preventDefault();
             addDraft();
           }}
-          placeholder="例）縮毛矯正、ブリーチ"
+          placeholder="例）ヘアセット、エクステ"
           flex="1"
           {...FIELD_STYLES}
         />
