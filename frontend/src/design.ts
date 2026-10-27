@@ -22,6 +22,15 @@ export const CARD = {
   borderRadius: "14px",
 };
 
+export const NOTICE = {
+  bg: COLOR.black,
+  color: COLOR.white,
+  borderRadius: "10px",
+  px: "16px",
+  py: "14px",
+  fontSize: "14px",
+};
+
 export const PRIMARY_BUTTON = {
   bg: COLOR.black,
   color: COLOR.white,
