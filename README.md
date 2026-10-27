@@ -40,6 +40,27 @@ HairHistory は施術履歴を 1 か所に貯め、**閲覧専用のリンク 1 
 | インフラ | AWS EC2（Ubuntu）1 台構成、Nginx リバースプロキシ（TLS 終端・レート制限）、systemd、Let's Encrypt（certbot）、DuckDNS |
 | 開発環境 | Docker Compose（PostgreSQL）、Makefile |
 
+全体の構成は次のとおりです。EC2 1 台の中に Nginx・Go API・PostgreSQL・静的ファイルが同居しています。
+
+```mermaid
+flowchart LR
+    Browser["ブラウザ<br/>(React SPA)"]
+    Google["Google<br/>Identity Services"]
+
+    subgraph EC2["EC2 1台 (t3.micro / Ubuntu)"]
+        Nginx["Nginx<br/>HTTPS終端 / レート制限"]
+        API["Go API (chi)<br/>127.0.0.1:8080<br/>systemd: hairhistory-api"]
+        PG[("PostgreSQL")]
+        Static["静的ファイル<br/>/var/www/hairhistory"]
+    end
+
+    Browser -- "HTTPS :443" --> Nginx
+    Browser -. "IDトークン取得" .-> Google
+    Nginx -- "/ → 静的配信<br/>(SPAフォールバック)" --> Static
+    Nginx -- "/api/ → リバースプロキシ<br/>(HTTP, localhost)" --> API
+    API -- "SQL (pgx)" --> PG
+```
+
 ### なぜこの構成にしたか
 
 **SSR を使わず SPA にした**
@@ -79,6 +100,28 @@ PostgreSQL
 
 `usecase` は具体的な DB 実装ではなく `repository` の interface に依存しているため、
 テストではインメモリのフェイクに差し替えられます（`internal/*/usecase_test.go`）。
+
+依存の向きを図にすると次のようになります。実装は `main.go` が起動時に注入します。
+
+```mermaid
+flowchart TD
+    H["handler<br/>HTTP入出力 / JSON変換"]
+    U["usecase<br/>バリデーション・所有者チェック<br/>ID発行・トークン生成"]
+    I{{"Repository インターフェース<br/>（usecase と同じパッケージで定義）"}}
+    P["PostgresRepository<br/>SQL (pgx)"]
+    S["テスト用スタブ<br/>(usecase_test.go)"]
+    PG[("PostgreSQL")]
+
+    H --> U
+    U -- "依存" --> I
+    P -. "実装" .-> I
+    S -. "実装" .-> I
+    P --> PG
+
+    DI["main.go<br/>起動時に実装を注入 (DI)"]
+    DI -.-> P
+    DI -.-> U
+```
 
 ## セキュリティ上の設計
 
@@ -230,7 +273,52 @@ make migrate-up
 ```
 
 `users` / `treatments` / `share_links` / `sessions` の 4 テーブルが作られます。
-スキーマの詳細は [`docs/DATABASE.md`](docs/DATABASE.md) を参照してください。
+テーブル間の関係は次のとおりです。
+
+```mermaid
+erDiagram
+    users ||--o{ treatments : "所有"
+    users ||--o{ share_links : "発行"
+    users ||--o{ sessions : "保持"
+
+    users {
+        uuid id PK
+        text google_sub UK "Googleのsub"
+        text email
+        text name
+        timestamptz created_at
+    }
+
+    treatments {
+        uuid id PK
+        uuid user_id FK "ON DELETE CASCADE"
+        date treated_on "施術日"
+        text_array services "施術内容(1件以上)"
+        text salon_name "NULL可"
+        text memo "NULL可"
+        integer cost "NULL可 / 0以上"
+    }
+
+    share_links {
+        uuid id PK
+        uuid user_id FK "ON DELETE CASCADE"
+        text token UK "ランダム32バイト"
+        timestamptz expires_at "有効期限"
+        timestamptz revoked_at "NULL=有効"
+    }
+
+    sessions {
+        uuid id PK
+        uuid user_id FK "ON DELETE CASCADE"
+        text token_hash UK "SHA-256(生トークンは保存しない)"
+        timestamptz expires_at
+    }
+```
+
+図では `created_at` / `updated_at` の一部と各インデックスを省略しています。また `treatments` には CHECK 制約があり、
+`services` は空配列を許さず、`cost` は NULL または 0 以上に限られます。
+カラムの型・制約・インデックスを含むスキーマの詳細は
+[`docs/DATABASE.md`](docs/DATABASE.md) を参照してください。
 
 ### 3. バックエンドを起動する
 
