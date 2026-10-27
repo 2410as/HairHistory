@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ActionButton } from '../components/ActionButton';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,7 +39,7 @@ interface LocationState {
 export const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isLoading, devLogin, googleLogin } = useAuth();
+  const { user, isLoading, isSessionExpired, devLogin, googleLogin } = useAuth();
 
   const [email, setEmail] = useState('anna@example.com');
   const [name, setName] = useState('Anna');
@@ -100,6 +101,14 @@ export const Login = () => {
       />
 
       <Box maxW="480px">
+        {isSessionExpired && (
+          <Box mb="20px">
+            <Notice>
+              ログインの有効期限が切れました。もう一度ログインしてください。ログインすると元の画面に戻ります。
+            </Notice>
+          </Box>
+        )}
+
         <Box
           bg={CARD.bg}
           border={CARD.border}
@@ -174,9 +183,9 @@ export const Login = () => {
           />
 
           {error && (
-            <Text fontFamily={FONT} fontSize="13px" color={COLOR.muted} mt="12px" lineHeight="1.7">
-              {error}
-            </Text>
+            <Box mt="16px">
+              <Notice>{error}</Notice>
+            </Box>
           )}
 
           <ActionButton

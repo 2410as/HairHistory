@@ -100,22 +100,27 @@ interface MutationState {
   error: Error | null;
 }
 
+export interface MutationOutcome<TResult> {
+  data: TResult | null;
+  error: Error | null;
+}
+
 const useMutation = <TArgs extends unknown[], TResult>(
   mutate: (...args: TArgs) => Promise<TResult>
 ) => {
   const [state, setState] = useState<MutationState>({ isSubmitting: false, error: null });
 
   const run = useCallback(
-    async (...args: TArgs): Promise<TResult | null> => {
+    async (...args: TArgs): Promise<MutationOutcome<TResult>> => {
       setState({ isSubmitting: true, error: null });
       try {
         const result = await mutate(...args);
         setState({ isSubmitting: false, error: null });
-        return result;
+        return { data: result, error: null };
       } catch (err) {
         const normalized = err instanceof Error ? err : new Error('Unknown error');
         setState({ isSubmitting: false, error: normalized });
-        return null;
+        return { data: null, error: normalized };
       }
     },
     [mutate]

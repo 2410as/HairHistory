@@ -2,6 +2,7 @@ import { Box, Input, Textarea, Text } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ActionButton } from "../components/ActionButton";
+import { Notice } from "../components/Notice";
 import { PageHeader } from "../components/PageHeader";
 import { SkeletonLoader } from "../components/SkeletonLoader";
 import { CARD, COLOR, FONT, SECONDARY_BUTTON } from "../design";
@@ -11,9 +12,17 @@ import {
   useTreatment,
   useUpdateTreatment,
 } from "../hooks/useTreatments";
-import { toErrorMessage } from "../lib/apiClient";
+import { ApiError, toErrorMessage } from "../lib/apiClient";
+import {
+  clearTreatmentDraft,
+  readTreatmentDraft,
+  saveTreatmentDraft,
+} from "../lib/treatmentDraft";
 import { MAX_SERVICE_LENGTH, MAX_SERVICES, SERVICE_OPTIONS } from "../serviceOptions";
 import type { TreatmentInput } from "../types";
+
+const isUnauthenticated = (error: Error | null) =>
+  error instanceof ApiError && error.code === "unauthenticated";
 
 const FIELD_STYLES = {
   fontFamily: FONT,
@@ -62,7 +71,17 @@ const Field = ({ label, required, error, children }: FieldProps) => (
     </Text>
     {children}
     {error && (
-      <Text fontFamily={FONT} fontSize="13px" color={COLOR.muted} mt="8px">
+      <Text
+        role="alert"
+        fontFamily={FONT}
+        fontSize="13px"
+        fontWeight="600"
+        color={COLOR.black}
+        borderLeft={`2px solid ${COLOR.black}`}
+        pl="10px"
+        mt="10px"
+        lineHeight="1.7"
+      >
         {error}
       </Text>
     )}
@@ -231,7 +250,17 @@ const ServiceSelector = ({ selected, onChange }: ServiceSelectorProps) => {
       </Text>
 
       {draftError && (
-        <Text fontFamily={FONT} fontSize="13px" color={COLOR.muted} mt="6px">
+        <Text
+          role="alert"
+          fontFamily={FONT}
+          fontSize="13px"
+          fontWeight="600"
+          color={COLOR.black}
+          borderLeft={`2px solid ${COLOR.black}`}
+          pl="10px"
+          mt="8px"
+          lineHeight="1.7"
+        >
           {draftError}
         </Text>
       )}
@@ -267,13 +296,19 @@ export const TreatmentDetail = () => {
   const updateMutation = useUpdateTreatment();
   const deleteMutation = useDeleteTreatment();
 
-  const [formData, setFormData] = useState<FormState>(EMPTY_FORM);
+  const draftId = id ?? "new";
+  const [restoredDraft] = useState(() => readTreatmentDraft(draftId));
+  const [formData, setFormData] = useState<FormState>(restoredDraft ?? EMPTY_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   useEffect(() => {
-    if (!treatment) return;
+    clearTreatmentDraft(draftId);
+  }, [draftId]);
+
+  useEffect(() => {
+    if (!treatment || restoredDraft) return;
     setFormData({
       services: [...treatment.services],
       treatedOn: treatment.treatedOn,
@@ -281,7 +316,7 @@ export const TreatmentDetail = () => {
       memo: treatment.memo ?? "",
       cost: typeof treatment.cost === "number" ? String(treatment.cost) : "",
     });
-  }, [treatment]);
+  }, [treatment, restoredDraft]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -338,28 +373,33 @@ export const TreatmentDetail = () => {
     if (!validate()) return;
 
     const input = buildInput();
-    const saved = isNewTreatment
+    const outcome = isNewTreatment
       ? await createMutation.run(input)
       : await updateMutation.run(id as string, input);
 
-    if (saved) {
+    if (outcome.data) {
       navigate("/dashboard");
       return;
     }
 
-    const failure = isNewTreatment ? createMutation.error : updateMutation.error;
-    setSubmitError(toErrorMessage(failure));
+    if (isUnauthenticated(outcome.error)) {
+      saveTreatmentDraft(draftId, formData);
+      return;
+    }
+
+    setSubmitError(toErrorMessage(outcome.error));
   };
 
   const handleDelete = async () => {
     setSubmitError(null);
-    const deleted = await deleteMutation.run(id as string);
-    if (deleted) {
+    const outcome = await deleteMutation.run(id as string);
+    if (outcome.data) {
       navigate("/dashboard");
       return;
     }
     setIsConfirmingDelete(false);
-    setSubmitError(toErrorMessage(deleteMutation.error));
+    if (isUnauthenticated(outcome.error)) return;
+    setSubmitError(toErrorMessage(outcome.error));
   };
 
   const isSubmitting =
@@ -421,6 +461,14 @@ export const TreatmentDetail = () => {
       />
 
       <Box maxW="640px">
+        {restoredDraft && (
+          <Box mb="20px">
+            <Notice>
+              ログインの有効期限が切れたため保存できませんでした。入力内容は復元されているので、もう一度「保存する」を押してください。
+            </Notice>
+          </Box>
+        )}
+
         <Box
           bg={CARD.bg}
           border={CARD.border}
@@ -483,11 +531,7 @@ export const TreatmentDetail = () => {
             />
           </Field>
 
-          {submitError && (
-            <Text fontFamily={FONT} fontSize="13px" color={COLOR.muted} lineHeight="1.7">
-              {submitError}
-            </Text>
-          )}
+          {submitError && <Notice>{submitError}</Notice>}
         </Box>
 
         <Box
