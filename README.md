@@ -7,6 +7,15 @@ Go 製の API サーバーと React の SPA を分離して実装し、AWS EC2 �
 
 Google アカウントでログインして実際に試せます（HTTPS / Google ログインとも本番で動作中）。
 
+## 目次
+
+- [解決したい課題](#解決したい課題) / [主な機能](#主な機能) / [技術スタック](#技術スタック)
+- [アーキテクチャ](#アーキテクチャ) — [リクエスト処理の流れ](#リクエスト処理の流れ) / [エラーハンドリング](#エラーハンドリング)
+- [セキュリティ上の設計](#セキュリティ上の設計) / [ディレクトリ構成](#ディレクトリ構成) / [画面とルーティング](#画面とルーティング)
+- [ローカルセットアップ](#ローカルセットアップ) / [環境変数](#環境変数)
+- [API](#api) — [エンドポイントの構造とレート制限](#エンドポイントの構造とレート制限) / [主要な処理のシーケンス](#主要な処理のシーケンス)
+- [テスト](#テスト) / [デプロイ](#デプロイ) / [今後の課題・未実装](#今後の課題未実装)
+
 ## 解決したい課題
 
 美容院で「前回どんな施術をしたか」を思い出せず、うまく伝えられないことがあります。
@@ -122,6 +131,102 @@ flowchart TD
     DI -.-> P
     DI -.-> U
 ```
+
+### リクエスト処理の流れ
+
+ブラウザが 1 本のリクエストを投げてからレスポンスが返るまでに通る経路です。
+ミドルウェアは `main.go` で `RequestID → Recoverer → Logging → CORS` の順に全ルートへ適用し、
+`RequireUser`（認証）だけは `/api/treatments/*` と `/api/shares/*` を囲む保護グループにのみ付けています。
+`GET /api/auth/me` は例外で、`auth` パッケージ側で個別に `RequireUser` を付けています。
+
+```mermaid
+flowchart TD
+    Browser["ブラウザ (React SPA)<br/>axios / hh_session Cookie"]
+    Nginx["Nginx<br/>TLS終端・レート制限・静的配信"]
+    Limited["429 rate_limited<br/>APIと同じエラー封筒で返す"]
+
+    subgraph GoAPI["Go API (chi) 127.0.0.1:8080"]
+        direction TB
+        MW1["① RequestID<br/>X-Request-Id を発行/引き継ぎ"]
+        MW2["② Recoverer<br/>panic を 500 に変換"]
+        MW3["③ Logging<br/>method・path・status・duration<br/>共有トークンは [REDACTED]"]
+        MW4["④ CORS<br/>許可オリジンのみ / OPTIONS は 204"]
+        Router{"chi ルーティング"}
+        MW5["⑤ RequireUser<br/>保護グループだけに適用"]
+        Handler["handler<br/>JSONデコード / URLパラメータ"]
+        Usecase["usecase<br/>バリデーション・所有者チェック"]
+        Repo["repository<br/>プレースホルダ付き SQL (pgx)"]
+    end
+
+    PG[("PostgreSQL")]
+    ErrOut["httpx.Error<br/>APIError → HTTPステータス<br/>error.code / message / details"]
+
+    Browser -->|"HTTPS /api/..."| Nginx
+    Nginx -.->|"ゾーン上限を超過"| Limited
+    Limited -.-> Browser
+    Nginx -->|"proxy_pass (localhost)"| MW1
+    MW1 --> MW2 --> MW3 --> MW4 --> Router
+    Router -->|"/healthz・/api/auth/*<br/>/api/public/shares/:token"| Handler
+    Router -->|"/api/treatments/*・/api/shares/*"| MW5
+    MW5 -->|"セッション有効"| Handler
+    MW5 -.->|"Cookie なし / 期限切れ"| ErrOut
+    Handler --> Usecase --> Repo --> PG
+    PG -.->|"結果行"| Handler
+    Handler -->|"200 / 201 / 204 + JSON"| Browser
+    Usecase -.->|"400・403・404・500"| ErrOut
+    ErrOut -.-> Browser
+```
+
+点線がエラー経路です。どのレイヤーで失敗しても最終的に `httpx.Error` に合流し、
+同じ `{"error": {...}}` の形で返ります。登録されていないパスは chi の `NotFound` が
+同じ形の 404 を返します。
+
+### エラーハンドリング
+
+エラーは `httpx/errors.go` の `APIError` 1 種類に統一し、`Code` から HTTP ステータスへ機械的に
+変換しています。内部エラーの原因は `Cause` に入れてログにだけ出し、レスポンスには載せません。
+
+```mermaid
+flowchart TD
+    Src["usecase / handler / ミドルウェア<br/>httpx.InvalidArgument・Unauthenticated<br/>PermissionDenied・NotFound・Internal"]
+    AsErr["httpx.AsAPIError<br/>APIError 以外は Internal で包み Cause に保持"]
+    Log["サーバーログ (slog JSON)<br/>internal → Error(Cause付き)<br/>それ以外 → Info"]
+    Body["レスポンス本文<br/>code / message / details だけ<br/>Cause は JSON に出さない"]
+
+    Src --> AsErr
+    AsErr --> Log
+    AsErr --> Body
+    Body --> C400["400 invalid_argument"]
+    Body --> C401["401 unauthenticated"]
+    Body --> C403["403 permission_denied"]
+    Body --> C404["404 not_found"]
+    Body --> C500["500 internal"]
+```
+
+フロント側は `lib/apiClient.ts` の axios インターセプタがこの封筒を読み、既知のコードだけを
+`ApiError` に写します（知らないコードは `internal` 扱い、レスポンスが無ければ `network_error`）。
+`unauthenticated` のときだけ追加の処理が走り、セッション切れでも入力が消えないようにしています。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant V as 画面 (施術フォームなど)
+    participant AC as apiClient (axios インターセプタ)
+    participant Ctx as AuthContext
+    participant PR as ProtectedRoute / Login
+
+    V->>AC: 施術の保存など API 呼び出し
+    AC->>AC: 401 unauthenticated を ApiError に変換
+    AC->>Ctx: onUnauthenticated のリスナを通知
+    Ctx->>Ctx: user を null に / isSessionExpired を true に
+    AC-->>V: ApiError を reject
+    V->>V: 入力内容を sessionStorage に退避
+    Ctx->>PR: 保護ルートから /login へ (state.from に元のパス)
+    PR-->>V: 再ログイン後 state.from へ戻し、下書きを復元
+```
+
+`AuthContext` は「一度ログインが成立していた場合」だけセッション切れとして扱います
+（起動直後の `GET /api/auth/me` が 401 になるのは未ログインの正常系なので、警告を出しません）。
 
 ## セキュリティ上の設計
 
@@ -240,6 +345,34 @@ HairHistory/
 | `/treatment/:id` | 施術履歴の詳細・編集・削除。`/treatment/new` は新規登録フォーム | 必要 |
 | `/share` | 共有リンクの発行・QR コード表示・無効化 | 必要 |
 | `/share/:token` | 共有された履歴の公開閲覧 | 不要 |
+
+認証が必要な画面は `App.tsx` で `ProtectedRoute` に囲んでまとめています。`/share/:token` だけは
+共通レイアウトの外に置き、ログイン状態を一切参照しません。
+
+```mermaid
+flowchart LR
+    Home["/ トップ"]
+    Login["/login<br/>ログイン"]
+
+    subgraph Guard["ProtectedRoute: user が無ければ /login へ"]
+        direction TB
+        Dash["/dashboard<br/>ダッシュボード"]
+        List["/treatments<br/>履歴一覧"]
+        Detail["/treatment/:id<br/>/treatment/new"]
+        Share["/share<br/>発行・QR・無効化"]
+    end
+
+    Public["/share/:token<br/>公開閲覧 (Layout の外・認証不要)"]
+
+    Home --> Login
+    Login -->|"成功後 state.from へ"| Dash
+    Dash --> List
+    List --> Detail
+    Dash --> Share
+    Share -. "リンク / QR を渡す" .-> Public
+```
+
+上記以外のパスは `NotFound` に落ちます。
 
 ## ローカルセットアップ
 
@@ -395,6 +528,107 @@ SPA は自分と同じオリジンの `/api` を叩きます。同一オリジ�
 | `GET` | `/api/public/shares/{token}` | — | 共有された施術履歴の公開参照。個人情報は返さない |
 
 JSON はすべて camelCase、エラーは `{"error": {"code", "message", "details"}}` の形に統一しています。
+
+### エンドポイントの構造とレート制限
+
+同じ `/api/` 配下でも、認証の要否と Nginx のレート制限ゾーンは別軸です。実装では
+`limit_req` を 3 本まとめて `location /api/` に書いているため、`hh_auth` と `hh_public_share` に
+該当するパスは `hh_api` にも同時にカウントされます（ゾーンの選択は `map $uri` で行っています）。
+
+```mermaid
+flowchart LR
+    NX["Nginx location /api/<br/>3ゾーンを同時に評価"]
+
+    subgraph ZAUTH["hh_auth 10r/m (burst 5) ｜ 認証不要"]
+        direction TB
+        A1["POST /api/auth/google"]
+        A2["POST /api/auth/dev-login<br/>APP_ENV=development でのみ登録"]
+    end
+
+    subgraph ZPUB["hh_public_share 1r/s (burst 10) ｜ 認証不要"]
+        P1["GET /api/public/shares/:token<br/>個人情報を返さない"]
+    end
+
+    subgraph ZAPI["hh_api 10r/s (burst 30) のみ"]
+        direction TB
+        B1["POST /api/auth/logout ｜ 認証不要"]
+        B2["GET /api/auth/me ｜ 要認証"]
+        B3["GET・POST /api/treatments<br/>GET・PUT・DELETE /api/treatments/:id<br/>｜ 要認証"]
+        B4["POST・GET /api/shares<br/>DELETE /api/shares/:token<br/>｜ 要認証"]
+    end
+
+    HZ["GET /healthz<br/>認証不要・レート制限なし<br/>location = /healthz で別扱い"]
+
+    NX --> ZAUTH
+    NX --> ZPUB
+    NX --> ZAPI
+```
+
+### 主要な処理のシーケンス
+
+施術の登録（`POST /api/treatments`）です。認証ミドルウェアがセッションを検証し、
+ユーザーを `context` に載せてから handler に入ります。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SPA as ブラウザ (SPA)
+    participant MW as RequireUser
+    participant H as treatment handler
+    participant U as treatment usecase
+    participant R as PostgresRepository
+    participant DB as PostgreSQL
+
+    SPA->>MW: POST /api/treatments (hh_session Cookie 付き)
+    MW->>DB: トークンの SHA-256 ハッシュでセッションを照合
+    DB-->>MW: user / 無効なら 401 unauthenticated で終了
+    MW->>H: ユーザーを context に載せて handler へ
+    H->>U: DecodeJSON して Create(userID, input)
+    U->>U: validate (施術日・項目1〜10件・文字数・金額)
+    U->>R: uuid v7 を発行して Create
+    R->>DB: INSERT INTO treatments ... RETURNING
+    DB-->>H: 作成された行
+    H-->>SPA: 201 Created + Treatment の JSON
+```
+
+共有リンクの発行側です。トークンはサーバーで生成し、公開 URL と QR はフロントが組み立てます。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Owner as 本人 (ログイン済み)
+    participant MW as RequireUser
+    participant S as share handler / usecase
+    participant DB as PostgreSQL
+
+    Owner->>MW: POST /api/shares {expiresInHours}
+    MW->>S: セッション検証を通したユーザーで委譲
+    S->>S: 1〜8760 時間を検証 (省略時は 168)
+    S->>S: crypto/rand 32バイトを base64url でトークン化
+    S->>DB: INSERT INTO share_links (token, expires_at)
+    DB-->>Owner: 201 Created {token, expiresAt}
+    Note over Owner: フロントが /share/:token の URL と QR を生成
+```
+
+受け取った美容師側（未ログイン）の流れです。ここだけは認証ミドルウェアを通りません。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Guest as 美容師 (未ログイン)
+    participant NX as Nginx
+    participant S as share handler / usecase
+    participant DB as PostgreSQL
+
+    Guest->>NX: GET /share/:token
+    NX-->>Guest: index.html (SPA フォールバック)
+    Guest->>S: GET /api/public/shares/:token (Cookie 不要)
+    S->>DB: SELECT ... FROM share_links WHERE token = $1
+    DB-->>S: link / 未発行・期限切れ・無効化は全て 404
+    S->>DB: SELECT treatments WHERE user_id = link.user_id
+    DB-->>Guest: 200 OK 施術日・項目・サロン名・メモ・金額のみ
+    Note over S,DB: 氏名・メール・userId・施術 ID は構造体に含めない
+```
 
 ## テスト
 
